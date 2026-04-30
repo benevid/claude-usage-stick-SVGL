@@ -51,6 +51,43 @@ void halSetBrightness(uint8_t level) {
     ledcWrite(0, vals[level]);
 }
 
+#elif defined(BOARD_M5STICK_C_PLUS2)
+
+#define HOLD_PIN 4
+
+void halInit() {
+    pinMode(HOLD_PIN, OUTPUT);
+    digitalWrite(HOLD_PIN, HIGH);
+
+    auto cfg = M5.config();
+    M5.begin(cfg);
+}
+
+void halUpdate() {
+    M5.update();
+}
+
+bool halBtnAWasPressed() { return M5.BtnA.wasPressed(); }
+bool halBtnBWasPressed() { return M5.BtnB.wasPressed(); }
+bool halBtnAIsPressed()  { return M5.BtnA.isPressed(); }
+bool halBtnBIsPressed()  { return M5.BtnB.isPressed(); }
+
+int halBatPercent() {
+    int pct = M5.Power.getBatteryLevel();
+    if (pct >= 0 && pct <= 100) {
+        return pct;
+    }
+
+    const int mv = M5.Power.getBatteryVoltage();
+    const float v = mv / 1000.0f;
+    return constrain((int)((v - 3.3f) / 0.85f * 100), 0, 100);
+}
+
+void halSetBrightness(uint8_t level) {
+    static const uint8_t vals[] = {0, 64, 160, 255};
+    M5.Display.setBrightness(vals[level]);
+}
+
 #else // M5StickC Plus
 
 void halInit() {
