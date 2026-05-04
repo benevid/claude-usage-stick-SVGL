@@ -4,8 +4,14 @@
 #ifdef BOARD_TDISPLAY_S3
   #include <TFT_eSPI.h>
   extern TFT_eSPI lcd;
+#elif defined(BOARD_M5STICK_C_PLUS2)
+  #include <M5Unified.h>
+  #define lcd M5.Display
 #else
   #include <M5StickCPlus.h>
+  #ifdef lcd
+    #undef lcd
+  #endif
   #define lcd M5.Lcd
 #endif
 

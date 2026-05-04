@@ -2,8 +2,9 @@
 
 A tiny standalone device that shows your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) rate-limit usage in real time. Polls the Anthropic API and displays your 5-hour and 7-day usage windows, reset countdowns, signal strength, and battery level.
 
-Supports two boards:
+Supports three boards:
 - **M5StickC Plus** (ESP32-PICO, 240x135 LCD)
+- **M5StickC Plus2** (ESP32-PICO-V3-02, 240x135 LCD)
 - **LilyGo T-Display S3** (ESP32-S3, 320x170 LCD)
 
 <p align="center">
@@ -23,11 +24,12 @@ Supports two boards:
 
 ## Hardware
 
-Either of these boards:
+Use one of these supported boards:
 
 | Board | MCU | Display | Battery | Buy |
 | ----- | --- | ------- | ------- | --- |
 | M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit) |
+| M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus2-esp32-mini-iot-development-kit) |
 | LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 | 1300 mAh | [lilygo.cc](https://lilygo.cc/products/t-display-s3) |
 
 Plus any USB-C cable for flashing and power.
@@ -58,6 +60,10 @@ cd claude-usage-stick
 # M5StickC Plus
 pio run -e m5stick-cplus -t upload
 pio run -e m5stick-cplus -t uploadfs
+
+# M5StickC Plus2
+pio run -e m5stick-cplus2 -t upload
+pio run -e m5stick-cplus2 -t uploadfs
 
 # — or — LilyGo T-Display S3
 pio run -e tdisplay-s3 -t upload

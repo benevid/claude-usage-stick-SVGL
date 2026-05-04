@@ -1,6 +1,6 @@
 /*
  * Claude Code Usage Monitor — Standalone WiFi
- * Supports: M5StickC Plus, LilyGo T-Display S3
+ * Supports: M5StickC Plus, M5StickC Plus2, LilyGo T-Display S3
  *
  * Button A: cycle digit (PIN) / cycle brightness (dashboard)
  * Button B: confirm digit (PIN) / force refresh (dashboard)
