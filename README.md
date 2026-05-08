@@ -36,7 +36,7 @@ Use one of these supported boards:
 | M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit) |
 | M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus2-esp32-mini-iot-development-kit) |
 | LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 | 1300 mAh | [lilygo.cc](https://lilygo.cc/products/t-display-s3) |
-| ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | various |
+| ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | [aliexpress.com](https://www.aliexpress.com/item/1005007929382296.html) |
 
 Plus any USB-C cable for flashing and power.
 
