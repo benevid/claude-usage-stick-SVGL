@@ -2,11 +2,12 @@
 
 A tiny standalone device that shows your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) rate-limit usage in real time. Polls the Anthropic API and displays your 5-hour and 7-day usage windows, reset countdowns, signal strength, and battery level.
 
-Supports four boards:
+Supports six boards:
 - **M5StickC Plus** (ESP32-PICO, 240x135 LCD)
 - **M5StickC Plus2** (ESP32-PICO-V3-02, 240x135 LCD)
 - **LilyGo T-Display S3** (ESP32-S3, 320x170 LCD)
 - **LilyGo T-Display S3 AMOLED** 1.91" (ESP32-S3, 240x536 RM67162 AMOLED — H712/H713/H705/H681/H717)
+- **TTGO T-Display ESP32** (ESP32, 1.14" 135x240 ST7789 LCD)
 - **ESP32-C3-OLED** (ESP32-C3, 0.42" 72x40 OLED) — breadboard-friendly; bring your own buttons
 
 <p align="center">
@@ -38,6 +39,7 @@ Use one of these supported boards:
 | M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3jkKlNj) |
 | LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
 | LilyGo T-Display S3 AMOLED (1.91") | ESP32-S3 | 1.91" 240x536 AMOLED | varies | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
+| TTGO T-Display ESP32 | ESP32 | 1.14" 240x135 LCD | external (JST 1.25mm) | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c32HlGQ1) |
 | ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3JMxywv) |
 | M5Stack StickS3 | — | — | — | 🚧 In progress | [aliexpress.com](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
 
@@ -112,6 +114,10 @@ pio run -e tdisplay-s3 -t uploadfs
 # LilyGo T-Display S3 AMOLED 1.91" (H712/H713/H705/H681/H717)
 pio run -e tdisplay-s3-amoled -t upload
 pio run -e tdisplay-s3-amoled -t uploadfs
+
+# TTGO T-Display ESP32 (1.14" ST7789 LCD)
+pio run -e tdisplay-esp32 -t upload
+pio run -e tdisplay-esp32 -t uploadfs
 
 # ESP32-C3-OLED
 pio run -e esp32c3-oled -t upload
