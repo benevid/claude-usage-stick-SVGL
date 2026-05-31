@@ -23,6 +23,10 @@
   #define SCREEN_W              536
   #define SCREEN_H              240
   #define SCREEN_ROT            0
+#elif defined(BOARD_TDISPLAY_ESP32)
+  #define SCREEN_W              240
+  #define SCREEN_H              135
+  #define SCREEN_ROT            3
 #else
   #define SCREEN_W              240
   #define SCREEN_H              135

@@ -111,6 +111,60 @@ void halFlush() {}
 
 void halClear(uint16_t color) { lcd.fillScreen(color); }
 
+#elif defined(BOARD_TDISPLAY_ESP32)
+
+// TTGO/LilyGo T-Display ESP32 (1.14" ST7789 135x240, 4-wire SPI).
+TFT_eSPI lcd;
+
+#define BTN_A_PIN  0    // also BOOT button; onboard pull-up, active-LOW
+#define BTN_B_PIN  35   // input-only pin (no internal pull); onboard pull-up, active-LOW
+#define BAT_ADC    34   // battery voltage via 2:1 divider
+#define ADC_EN     14   // drive HIGH to enable the battery divider
+#define BL_PIN     4
+
+static bool prevA = false, prevB = false;
+static bool tapA = false, tapB = false;
+
+void halInit() {
+    pinMode(ADC_EN, OUTPUT);
+    digitalWrite(ADC_EN, HIGH);
+    lcd.init();
+    pinMode(BTN_A_PIN, INPUT_PULLUP);
+    pinMode(BTN_B_PIN, INPUT);       // GPIO35 is input-only; relies on board pull-up
+    ledcSetup(0, 5000, 8);
+    ledcAttachPin(BL_PIN, 0);
+    ledcWrite(0, 200);
+}
+
+void halUpdate() {
+    bool a = !digitalRead(BTN_A_PIN);
+    bool b = !digitalRead(BTN_B_PIN);
+    tapA = (a && !prevA);
+    tapB = (b && !prevB);
+    prevA = a;
+    prevB = b;
+}
+
+bool halBtnAWasPressed() { bool r = tapA; tapA = false; return r; }
+bool halBtnBWasPressed() { bool r = tapB; tapB = false; return r; }
+bool halBtnAIsPressed()  { return !digitalRead(BTN_A_PIN); }
+bool halBtnBIsPressed()  { return !digitalRead(BTN_B_PIN); }
+
+int halBatPercent() {
+    uint16_t raw = analogRead(BAT_ADC);
+    float v = (raw / 4095.0f) * 3.3f * 2.0f;
+    return constrain((int)((v - 3.3f) / 0.85f * 100), 0, 100);
+}
+
+void halSetBrightness(uint8_t level) {
+    static const uint8_t vals[] = {0, 60, 160, 255};
+    ledcWrite(0, vals[level]);
+}
+
+void halFlush() {}
+
+void halClear(uint16_t color) { lcd.fillScreen(color); }
+
 #elif defined(BOARD_TDISPLAY_S3_AMOLED)
 
 // LilyGo T-Display S3 AMOLED (1.91" RM67162) — H712/H713/H705/H681/H717.
