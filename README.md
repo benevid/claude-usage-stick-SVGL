@@ -32,14 +32,14 @@ Supports four boards:
 
 Use one of these supported boards:
 
-| Board | MCU | Display | Battery | Buy |
-| ----- | --- | ------- | ------- | --- |
-| M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit) · [aliexpress.com](https://s.click.aliexpress.com/e/_c3w3hHWl) |
-| M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus2-esp32-mini-iot-development-kit) · [aliexpress.com](https://s.click.aliexpress.com/e/_c3jkKlNj) |
-| LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | [lilygo.cc](https://lilygo.cc/products/t-display-s3) · [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
-| LilyGo T-Display S3 AMOLED (1.91") | ESP32-S3 | 1.91" 240x536 AMOLED | varies | [lilygo.cc](https://lilygo.cc/products/t-display-s3-amoled) · [aliexpress.com](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
-| ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | [aliexpress.com](https://s.click.aliexpress.com/e/_c3JMxywv) |
-| M5Stack StickS3 | — | — | — | [aliexpress.com](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
+| Board | MCU | Display | Battery | Supported | Buy |
+| ----- | --- | ------- | ------- | --------- | --- |
+| M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | ✅ | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit) · [aliexpress.com](https://s.click.aliexpress.com/e/_c3w3hHWl) |
+| M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | ✅ | [m5stack.com](https://shop.m5stack.com/products/m5stickc-plus2-esp32-mini-iot-development-kit) · [aliexpress.com](https://s.click.aliexpress.com/e/_c3jkKlNj) |
+| LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | ✅ | [lilygo.cc](https://lilygo.cc/products/t-display-s3) · [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
+| LilyGo T-Display S3 AMOLED (1.91") | ESP32-S3 | 1.91" 240x536 AMOLED | varies | ✅ | [lilygo.cc](https://lilygo.cc/products/t-display-s3-amoled) · [aliexpress.com](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
+| ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3JMxywv) |
+| M5Stack StickS3 | — | — | — | 🚧 In progress | [aliexpress.com](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
 
 Plus any USB-C cable for flashing and power.
 
