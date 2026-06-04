@@ -27,6 +27,10 @@
   #define SCREEN_W              240
   #define SCREEN_H              135
   #define SCREEN_ROT            3
+#elif defined(BOARD_T8_S2)
+  #define SCREEN_W              240
+  #define SCREEN_H              135
+  #define SCREEN_ROT            3
 #else
   #define SCREEN_W              240
   #define SCREEN_H              135
