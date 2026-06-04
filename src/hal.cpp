@@ -311,6 +311,10 @@ void halClear(uint16_t color) {
 // brightness), the RIGHT half as Button B (confirm / refresh). This matches the
 // on-screen "tap left / tap right" legend positions. The A+B factory-reset combo needs
 // two buttons and is unavailable here (a single touch point is read); re-flash to wipe NVS.
+//
+// lcd is the panel itself. The dashboard renders into a PSRAM sprite and is pushed in one
+// transfer so refreshes don't flicker on this slow SPI panel (see ui.cpp); the PIN/setup
+// screens draw straight to the panel so touch input stays responsive.
 TFT_eSPI lcd;
 
 #define BL_PIN     38
@@ -328,7 +332,7 @@ static bool downA = false, downB = false;
 
 void halInit() {
     lcd.init();
-    lcd.invertDisplay(true);   // ILI9488 panel runs inverted (per Elecrow's driver)
+    lcd.invertDisplay(true);     // ILI9488 panel runs inverted (per Elecrow's driver)
     ledcSetup(0, 5000, 8);
     ledcAttachPin(BL_PIN, 0);
     ledcWrite(0, 200);

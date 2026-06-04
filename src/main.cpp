@@ -222,7 +222,9 @@ void loop() {
 
     static unsigned long lastRedraw = 0;
     if (millis() - lastRedraw > 10000) {
-        uiDashboard(usage, lastFetch, WiFi.RSSI(), halBatPercent());
+        // Only time passed (not data) — update the clock/countdowns in place; redrawing
+        // the whole dashboard here is what made the slow CrowPanel panel flicker.
+        uiDashboardClock(usage, lastFetch, WiFi.RSSI());
         lastRedraw = millis();
     }
 
