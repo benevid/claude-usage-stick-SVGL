@@ -165,6 +165,71 @@ void halFlush() {}
 
 void halClear(uint16_t color) { lcd.fillScreen(color); }
 
+#elif defined(BOARD_T8_S2)
+
+// LilyGo T8 ESP32-S2 (1.14" ST7789 135x240, 4-wire SPI on the FSPI bus). Same panel
+// as the TTGO T-Display, so all drawing is identical — only the pin mapping differs.
+//
+// The board exposes only the onboard BOOT button (GPIO0) as a usable input, so the
+// two-button UX is folded onto a single button by press duration:
+//   short tap  -> Button A (cycle digit / cycle brightness)
+//   long press -> Button B (confirm digit / force refresh)
+// GPIO0 is a strapping pin — holding it during reset enters download mode — so the
+// "hold A+B on boot" factory reset is unavailable here; re-flash to wipe NVS.
+TFT_eSPI lcd;
+
+#define BTN_PIN       0     // onboard BOOT button; active-LOW via onboard pull-up
+#define BL_PIN        33    // matches the TFT_BL build flag (verified on hardware)
+#define LONGPRESS_MS  600   // hold at least this long to register as Button B
+
+static bool     prevDown  = false;
+static uint32_t pressedAt = 0;
+static bool     longFired = false;
+static bool     tapA = false, tapB = false;
+
+void halInit() {
+    lcd.init();
+    pinMode(BTN_PIN, INPUT_PULLUP);
+    ledcSetup(0, 5000, 8);
+    ledcAttachPin(BL_PIN, 0);
+    ledcWrite(0, 200);
+}
+
+void halUpdate() {
+    bool down = !digitalRead(BTN_PIN);   // active-LOW
+    uint32_t now = millis();
+    if (down && !prevDown) {                              // press begins
+        pressedAt = now;
+        longFired = false;
+    } else if (down && prevDown) {                        // held down
+        if (!longFired && now - pressedAt >= LONGPRESS_MS) {
+            tapB = true;                                  // long press -> B (fires once)
+            longFired = true;
+        }
+    } else if (!down && prevDown) {                       // released
+        if (!longFired && now - pressedAt < LONGPRESS_MS) {
+            tapA = true;                                  // short tap -> A
+        }
+    }
+    prevDown = down;
+}
+
+bool halBtnAWasPressed() { bool r = tapA; tapA = false; return r; }
+bool halBtnBWasPressed() { bool r = tapB; tapB = false; return r; }
+bool halBtnAIsPressed()  { return !digitalRead(BTN_PIN); }
+bool halBtnBIsPressed()  { return false; } // no distinct "B held" with a single button
+
+int halBatPercent() { return -1; } // TODO(hardware): no confirmed battery-sense ADC on T8-S2
+
+void halSetBrightness(uint8_t level) {
+    static const uint8_t vals[] = {0, 60, 160, 255};
+    ledcWrite(0, vals[level]);
+}
+
+void halFlush() {}
+
+void halClear(uint16_t color) { lcd.fillScreen(color); }
+
 #elif defined(BOARD_TDISPLAY_S3_AMOLED)
 
 // LilyGo T-Display S3 AMOLED (1.91" RM67162) — H712/H713/H705/H681/H717.

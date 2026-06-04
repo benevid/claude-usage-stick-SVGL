@@ -2,10 +2,11 @@
 
 A tiny standalone device that shows your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) rate-limit usage in real time. Polls the Anthropic API and displays your 5-hour and 7-day usage windows, reset countdowns, signal strength, and battery level.
 
-Supports six boards:
+Supports seven boards:
 - **M5StickC Plus** (ESP32-PICO, 240x135 LCD)
 - **M5StickC Plus2** (ESP32-PICO-V3-02, 240x135 LCD)
 - **LilyGo T-Display S3** (ESP32-S3, 320x170 LCD)
+- **LilyGo T8 ESP32-S2** (ESP32-S2, 1.14" 135x240 ST7789 LCD)
 - **LilyGo T-Display S3 AMOLED** 1.91" (ESP32-S3, 240x536 RM67162 AMOLED — H712/H713/H705/H681/H717)
 - **TTGO T-Display ESP32** (ESP32, 1.14" 135x240 ST7789 LCD)
 - **ESP32-C3-OLED** (ESP32-C3, 0.42" 72x40 OLED) — breadboard-friendly; bring your own buttons
@@ -38,10 +39,13 @@ Use one of these supported boards:
 | M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3w3hHWl) |
 | M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3jkKlNj) |
 | LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
+| LilyGo T8 ESP32-S2 | ESP32-S2 | 1.14" 135x240 LCD | external (JST) | ✅¹ | [aliexpress.com](https://pt.aliexpress.com/item/1005007724176159.html) |
 | LilyGo T-Display S3 AMOLED (1.91") | ESP32-S3 | 1.91" 240x536 AMOLED | varies | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
 | TTGO T-Display ESP32 | ESP32 | 1.14" 240x135 LCD | external (JST 1.25mm) | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c32HlGQ1) |
 | ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | ✅ | [aliexpress.com](https://s.click.aliexpress.com/e/_c3JMxywv) |
 | M5Stack StickS3 | — | — | — | 🚧 In progress | [aliexpress.com](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
+
+> ¹ **T8 ESP32-S2:** display, WiFi provisioning, the encrypted dashboard, and button input are all verified on hardware. The board exposes only the onboard **BOOT** button (GPIO0), so the two-button UX is folded onto one button by press length: **short tap = Button A** (cycle digit / brightness), **long press = Button B** (confirm digit / refresh). Because GPIO0 is a strapping pin, the "hold A+B on boot" factory reset is unavailable — re-flash to wipe NVS. Battery percentage is not shown (no confirmed battery-sense ADC).
 
 Plus any USB-C cable for flashing and power.
 
@@ -110,6 +114,10 @@ pio run -e m5stick-cplus2 -t uploadfs
 # LilyGo T-Display S3 (regular LCD variant)
 pio run -e tdisplay-s3 -t upload
 pio run -e tdisplay-s3 -t uploadfs
+
+# LilyGo T8 ESP32-S2 (1.14" ST7789 LCD)
+pio run -e t8-s2 -t upload
+pio run -e t8-s2 -t uploadfs
 
 # LilyGo T-Display S3 AMOLED 1.91" (H712/H713/H705/H681/H717)
 pio run -e tdisplay-s3-amoled -t upload

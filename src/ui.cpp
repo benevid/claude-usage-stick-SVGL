@@ -422,6 +422,16 @@ void uiPinScreen(int pos, const int digits[4]) {
     lcd.setTextColor(C_DIM, C_BG);
     lcd.setTextSize(TS(1));
     lcd.setCursor(SX(20), SY(95));
+#ifdef BOARD_T8_S2
+    // Single BOOT button: short tap cycles the digit, long press confirms.
+    lcd.print("[tap] cycle digit");
+    lcd.setCursor(SX(148), SY(95));
+    lcd.print("[hold] confirm");
+
+    lcd.setCursor(SX(35), SY(118));
+    lcd.setTextColor(0x4A49, C_BG);
+    lcd.print("short tap = A    long press = B");
+#else
     lcd.print("[A] cycle digit");
     lcd.setCursor(SX(148), SY(95));
     lcd.print("[B] confirm");
@@ -429,6 +439,7 @@ void uiPinScreen(int pos, const int digits[4]) {
     lcd.setCursor(SX(35), SY(118));
     lcd.setTextColor(0x4A49, C_BG);
     lcd.print("Hold A+B on boot = factory reset");
+#endif
     halFlush();
 }
 
