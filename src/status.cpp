@@ -2,7 +2,7 @@
 // affected model family in their text ("Elevated errors on Claude Opus 4.6"),
 // so a keyword scan is all the parsing needed — there are no per-model
 // components on the status page.
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
 
 #include "status.h"
 #include "config.h"
@@ -62,4 +62,4 @@ bool fetchModelStatus(ModelStatus& out) {
     return true;
 }
 
-#endif // BOARD_TDISPLAY_S3
+#endif // MANGO_UI

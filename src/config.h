@@ -53,3 +53,10 @@
 
 // ── NVS ──────────────────────────────────────────────────
 #define NVS_NAMESPACE           "claude"
+
+// ── Feature flags (set via build_flags in platformio.ini) ────
+// MANGO_UI — the "Mango" dashboard: model-status mascots from status.claude.com,
+//   battery + WiFi-signal icons in the header, dashboard-styled PIN screen, and
+//   Button A = flip screen / Button B = brightness. Enabled on the boards whose
+//   panels have the vertical room for it: BOARD_TDISPLAY_S3 (320x170) and
+//   BOARD_M5STICK_C_PLUS (240x135). Mango-specific geometry branches on the board.

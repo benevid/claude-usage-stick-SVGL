@@ -1,6 +1,6 @@
 #pragma once
 #include "api.h"
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
 #include "status.h"
 #endif
 
@@ -15,11 +15,11 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
 void uiDashboardClock(const UsageData& data, unsigned long lastFetchMs, int rssi);
 void uiError(const char* title, const char* detail = nullptr);
 void uiLockout(int attempts, int maxAttempts, int lockoutSec);
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
 // Latest model health for the dashboard's mascot row; cached until the next call.
 void uiSetModelStatus(const ModelStatus& s);
 // Flip the panel 180° (and clear it); caller redraws the current screen.
 void uiToggleRotation();
 // Close (true) or open (false) the healthy mascots' eyes on the dashboard.
 void uiBlinkTick(bool closed);
-#endif
+#endif // MANGO_UI

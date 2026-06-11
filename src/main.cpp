@@ -20,14 +20,14 @@
 #include "provision.h"
 #include "api.h"
 #include "ui.h"
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
 #include "status.h"
 #endif
 
 static Preferences prefs;
 static char        token[256];
 static UsageData   usage;
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
 static ModelStatus modelStatus = {true, true, true, true, false};
 #endif
 static unsigned long lastFetch = 0;
@@ -81,7 +81,7 @@ static void refresh() {
         prefs.end();
     }
     fetchUsage(token, usage);
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
     fetchModelStatus(modelStatus);   // failure keeps last-known state
     uiSetModelStatus(modelStatus);
 #endif
@@ -213,7 +213,7 @@ void setup() {
 void loop() {
     halUpdate();
 
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
     // A flips the screen 180°, B cycles brightness. Refresh stays automatic.
     if (halBtnAWasPressed()) {
         uiToggleRotation();
@@ -243,7 +243,7 @@ void loop() {
         refresh();
     }
 
-#ifdef BOARD_TDISPLAY_S3
+#ifdef MANGO_UI
     // Healthy mascots blink every 2s (eyes shut for 150ms) to show liveness.
     static unsigned long lastBlink = 0;
     static bool eyesClosed = false;

@@ -29,7 +29,20 @@ Firmware releases carry names. Each board's current version is listed in the [Ha
 | Version | Name | Boards | Highlights |
 | ------- | ---- | ------ | ---------- |
 | v1 | **Clarity** | All supported boards | Usage bars, reset countdowns, PIN unlock, captive-portal setup |
-| v2 | **Mango** | LilyGo T-Display S3 only | Everything in Clarity, plus: Claude model status mascots (Haiku / Sonnet / Opus / Fable health from [status.claude.com](https://status.claude.com) — a downed model turns gray with X eyes, healthy ones blink), battery and WiFi-signal icons in the header, dashboard-styled PIN screen, and screen rotation on Button A |
+| v2 | **Mango** | M5StickC Plus, LilyGo T-Display S3 | Everything in Clarity, plus: Claude model status (Haiku / Sonnet / Opus / Fable health from [status.claude.com](https://status.claude.com) — a downed model turns gray with X eyes, healthy ones blink), battery and WiFi-signal icons in the header, dashboard-styled PIN screen, reset countdowns inline on each usage bar, and screen flip (Button A) / brightness (Button B) |
+
+### Display tiers
+
+The Mango dashboard keeps the same header and usage bars on every board, and adapts only its bottom **MODELS** section to the screen size. Each tier has a reference board; the layout scales to fit.
+
+| Tier | Class | Resolution | Reference board | MODELS section | Status |
+| ---- | ----- | ---------- | --------------- | -------------- | ------ |
+| **XS** | tiny OLED | ≤ 128×64 | ESP32-C3-OLED | — | ⏳ Pending |
+| **S** | small LCD | ~240×135 | **M5StickC Plus** | One overall-health Clawd + a 2×2 `NAME UP/DOWN` text grid | ✅ |
+| **L** | large LCD | ~320×170 | **LilyGo T-Display S3** | A row of four labelled Clawds (one per model), each blinking when healthy | ✅ |
+| **XL** | big / touch | ≥ 480×320 | CrowPanel 3.5", S3 AMOLED | — | ⏳ Pending |
+
+> Boards still on **Clarity (v1)** (M5StickC Plus2, TTGO T-Display, T8-S2, CrowPanel, S3 AMOLED, ESP32-C3-OLED) keep the original minimal dashboard until they're migrated to their tier.
 
 ## Features
 
@@ -39,8 +52,9 @@ Firmware releases carry names. Each board's current version is listed in the [Ha
 - **Captive-portal setup** — connect your phone to the device's WiFi AP and configure everything in a browser
 - **Battery & signal info** shown on the dashboard
 - **Button controls** — cycle brightness (A), force refresh (B), factory reset (hold A+B on boot)
-- **Model status mascots** *(Mango)* — four Clawd mascots track Haiku / Sonnet / Opus / Fable health from the Claude status page
+- **Model status** *(Mango)* — Haiku / Sonnet / Opus / Fable health from the Claude status page, shown as a row of Clawd mascots (tier L) or a text grid with one overall-health Clawd (tier S); a downed model turns gray with X eyes, healthy ones blink
 - **Header icons** *(Mango)* — battery level and WiFi signal strength as icons in the header bar
+- **Inline reset countdowns** *(Mango)* — each usage bar shows its own reset time on the bar row, freeing the bottom of the screen for the MODELS section
 
 ## Hardware
 
@@ -48,9 +62,9 @@ Use one of these supported boards:
 
 | Board | MCU | Display | Battery | Supported | Version | Buy |
 | ----- | --- | ------- | ------- | --------- | ------- | --- |
-| M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c3w3hHWl) |
+| M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | ✅ | **Mango (v2) — tier S** | [aliexpress.com](https://s.click.aliexpress.com/e/_c3w3hHWl) |
 | M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c3jkKlNj) |
-| LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | ✅ | **Mango (v2)** | [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
+| LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | ✅ | **Mango (v2) — tier L** | [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
 | LilyGo T8 ESP32-S2 | ESP32-S2 | 1.14" 135x240 LCD | external (JST) | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c2w1HnpJ) |
 | Elecrow CrowPanel Advance 3.5" HMI | ESP32-S3 | 3.5" 480x320 IPS (touch) | external | ✅¹ | Clarity (v1) | [elecrow.com](https://www.elecrow.com/crowpanel-advance-3-5-hmi-esp32-ai-display-480x320-artificial-intelligent-ips-touch-screen.html) |
 | LilyGo T-Display S3 AMOLED (1.91") | ESP32-S3 | 1.91" 240x536 AMOLED | varies | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
@@ -188,7 +202,7 @@ Once unlocked, the dashboard appears and auto-refreshes.
 | B | Force an immediate refresh |
 | A+B held on boot | Factory reset (wipes all stored data) |
 
-> **Mango (T-Display S3):** Button A rotates the screen 180° and Button B cycles brightness; refresh happens automatically on the poll interval.
+> **Mango (M5StickC Plus & T-Display S3):** Button A flips the screen 180° and Button B cycles brightness; refresh happens automatically on the poll interval.
 
 ## Project Structure
 
