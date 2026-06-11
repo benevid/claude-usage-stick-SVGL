@@ -39,7 +39,7 @@ Each board has its own spec page with pinouts, controls, and quirks — click th
 | ----- | --- | ------- | -------- | -------------- | --- |
 | [M5StickC Plus](docs/m5stick-cplus.md) | ESP32-PICO | 1.14" 240×135 LCD | 🥭 **Mango (v2)** · tier S | `m5stick-cplus` | [AliExpress](https://s.click.aliexpress.com/e/_c3w3hHWl) |
 | [M5StickC Plus2](docs/m5stick-cplus2.md) | ESP32-PICO-V3-02 | 1.14" 240×135 LCD | Clarity (v1) | `m5stick-cplus2` | [AliExpress](https://s.click.aliexpress.com/e/_c3jkKlNj) |
-| [LilyGo T-Display S3](docs/tdisplay-s3.md) | ESP32-S3 | 1.9" 320×170 LCD | 🥭 **Mango (v2.0.0)** · tier L | `tdisplay-s3` | [AliExpress](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
+| [LilyGo T-Display S3](docs/tdisplay-s3.md) | ESP32-S3 | 1.9" 320×170 LCD | 🥭 **Mango (v2.1.1)** · tier L | `tdisplay-s3` | [AliExpress](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
 | [LilyGo T8 ESP32-S2](docs/t8-s2.md) | ESP32-S2 | 1.14" 135×240 LCD | Clarity (v1) | `t8-s2` | [AliExpress](https://s.click.aliexpress.com/e/_c2w1HnpJ) |
 | [Elecrow CrowPanel Advance 3.5"](docs/crowpanel-adv-35.md) | ESP32-S3 | 3.5" 480×320 IPS touch | Clarity (v1) | `crowpanel-adv-35` | [AliExpress](https://s.click.aliexpress.com/e/_c4lDErmN) |
 | [LilyGo T-Display S3 AMOLED 1.91"](docs/tdisplay-s3-amoled.md) | ESP32-S3 | 1.91" 240×536 AMOLED | Clarity (v1) | `tdisplay-s3-amoled` | [AliExpress](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
@@ -77,7 +77,7 @@ The Mango dashboard keeps the same header and usage bars on every board, and ada
 
 - **Model status mascots** — Haiku / Sonnet / Opus / Fable health from the Claude status page; a downed model turns gray with X eyes, healthy ones blink
 - **Header icons** — battery level and WiFi signal strength as icons in the header bar
-- **Reset countdowns by tier** — tier S shows each reset time inline on its bar row; tier L (v2.0.0) gives the countdowns their own large-type row below the bars
+- **Reset countdowns by tier** — tier S shows each reset time inline on its bar row; tier L (v2.1.1) gives the countdowns their own large-type row below the bars
 - **Dashboard-styled PIN screen** — the unlock screen matches the dashboard look
 - **Screen flip & brightness** — Button A flips the screen 180°, Button B cycles brightness; refresh happens automatically, or press **A+B** together to force one
 
