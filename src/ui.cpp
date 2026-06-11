@@ -612,18 +612,24 @@ void uiPinScreen(int pos, const int digits[4]) {
                       (uint16_t*)s_dash.getPointer() + (size_t)bandY * SCREEN_W);
     }
 #else
+#ifdef BOARD_TDISPLAY_S3
+    static const char* hint = "[A] cycle digit   [B] confirm";
+    g.setCursor((SCREEN_W - (int)strlen(hint) * 6) / 2, hintY);
+    g.print(hint);
+
+    static const char* note = "Hold A+B on boot = factory reset";
+    g.setTextColor(0x4A49, C_BG);
+    g.setCursor((SCREEN_W - (int)strlen(note) * 6) / 2, 126);
+    g.print(note);
+#else
     g.print("[A] cycle digit");
     g.setCursor(SX(148), hintY);
     g.print("[B] confirm");
 
-#ifdef BOARD_TDISPLAY_S3
-    const int noteY = 126;
-#else
-    const int noteY = SY(118);
-#endif
-    g.setCursor(SX(35), noteY);
+    g.setCursor(SX(35), SY(118));
     g.setTextColor(0x4A49, C_BG);
     g.print("Hold A+B on boot = factory reset");
+#endif
     halFlush();
 #endif
 }
