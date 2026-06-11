@@ -353,6 +353,73 @@ static void drawBar(GFX& g, int x, int y, int w, int h, float pct, const char* l
     if (fw > 0) g.fillRect(x, by, fw, h, barColor(pct));
 }
 
+#ifdef BOARD_TDISPLAY_S3
+static ModelStatus s_modelStatus = {true, true, true, true, false};
+
+void uiSetModelStatus(const ModelStatus& s) {
+    s_modelStatus = s;
+}
+
+// Clawd, 18x5 px (MSB = leftmost column). The row-1 gaps at cols 5/12 are the eyes.
+static const uint32_t CLAWD_ROWS[5] = {
+    0b000111111111111000,
+    0b000110111111011000,
+    0b011111111111111110,
+    0b000111111111111000,
+    0b000010100001010000,
+};
+static const uint32_t CLAWD_DEAD_ROW1 = 0b000111111111111000;   // eyes filled solid
+
+static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool dead) {
+    for (int r = 0; r < 5; r++) {
+        uint32_t row = (dead && r == 1) ? CLAWD_DEAD_ROW1 : CLAWD_ROWS[r];
+        for (int c = 0; c < 18; c++)
+            if (row & (1UL << (17 - c)))
+                g.fillRect(x + c * s, y + r * s, s, s, color);
+    }
+    if (dead) {
+        static const int eyeCols[2] = {5, 12};
+        for (int e = 0; e < 2; e++) {
+            int cx = x + eyeCols[e] * s + s / 2;
+            int cy = y + s + s / 2;
+            g.drawLine(cx - 3, cy - 3, cx + 3, cy + 3, C_BG);
+            g.drawLine(cx - 2, cy - 3, cx + 4, cy + 3, C_BG);
+            g.drawLine(cx + 3, cy - 3, cx - 3, cy + 3, C_BG);
+            g.drawLine(cx + 4, cy - 3, cx - 2, cy + 3, C_BG);
+        }
+    }
+}
+
+static void drawMascotRow(TFT_eSPI& g) {
+    static const char* names[4] = {"HAIKU", "SONNET", "OPUS", "FABLE"};
+    bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
+                  s_modelStatus.opusUp,  s_modelStatus.fableUp};
+    for (int i = 0; i < 4; i++) {
+        int cx = 40 + i * 80;
+        // Unknown (status never fetched) renders gray without X eyes, so a
+        // status-page outage is never mistaken for a model outage.
+        bool dead = s_modelStatus.ok && !up[i];
+        uint16_t col = (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD;
+        drawMascot(g, cx - 27, 132, 3, col, dead);
+        g.setTextColor(C_DIM, C_BG);
+        g.setTextSize(1);
+        g.setCursor(cx - (int)strlen(names[i]) * 3, 152);
+        g.print(names[i]);
+    }
+}
+
+static void drawBatteryIcon(TFT_eSPI& g, int x, int y, int pct) {
+    g.drawRect(x, y, 18, 10, C_TEXT);
+    g.fillRect(x + 18, y + 3, 2, 4, C_TEXT);
+    int fw = 14 * constrain(pct, 0, 100) / 100;
+    if (fw > 0) g.fillRect(x + 2, y + 2, fw, 6, C_TEXT);
+    g.setTextColor(C_TEXT, C_HEAD);
+    g.setTextSize(1);
+    g.setCursor(x + 24, y + 1);
+    g.printf("%d%%", pct);
+}
+#endif // BOARD_TDISPLAY_S3
+
 void uiInit() {
     lcd.setRotation(SCREEN_ROT);
     halClear(C_BG);
@@ -548,6 +615,11 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
     g.setCursor(SCREEN_W - strlen(hdr) * TS(6) - SX(4), SY(5));
     g.print(hdr);
 
+#ifdef BOARD_TDISPLAY_S3
+    // Left header half only — the 10s clock repaint covers x >= SCREEN_W/2.
+    drawBatteryIcon(g, 96, 4, batPct);
+#endif
+
     if (!data.ok) {
         g.setTextColor(C_CRIT, C_BG);
         g.setTextSize(TS(2));
@@ -589,10 +661,14 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
     g.setCursor(SCREEN_W / 2 + SX(10), SY(92));
     g.printf("%-8s", d7rst);
 
+#ifdef BOARD_TDISPLAY_S3
+    drawMascotRow(g);
+#else
     g.setTextColor(C_DIM, C_BG);
     g.setTextSize(TS(1));
     g.setCursor(SCREEN_W - SX(48), SY(120));
     g.printf("BAT %d%%", batPct);
+#endif
     UI_PUSH_DASH();
 }
 

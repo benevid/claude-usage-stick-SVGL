@@ -20,10 +20,16 @@
 #include "provision.h"
 #include "api.h"
 #include "ui.h"
+#ifdef BOARD_TDISPLAY_S3
+#include "status.h"
+#endif
 
 static Preferences prefs;
 static char        token[256];
 static UsageData   usage;
+#ifdef BOARD_TDISPLAY_S3
+static ModelStatus modelStatus = {true, true, true, true, false};
+#endif
 static unsigned long lastFetch = 0;
 static int         pollMs     = DEFAULT_POLL_SEC * 1000;
 static uint8_t     brightness = DEFAULT_BRIGHTNESS;
@@ -75,6 +81,10 @@ static void refresh() {
         prefs.end();
     }
     fetchUsage(token, usage);
+#ifdef BOARD_TDISPLAY_S3
+    fetchModelStatus(modelStatus);   // failure keeps last-known state
+    uiSetModelStatus(modelStatus);
+#endif
     lastFetch = millis();
     uiDashboard(usage, lastFetch, WiFi.RSSI(), halBatPercent());
 }
