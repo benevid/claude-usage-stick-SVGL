@@ -406,20 +406,29 @@ static const uint32_t CLAWD_ROWS[5] = {
 };
 static const uint32_t CLAWD_DEAD_ROW1 = 0b000111111111111000;   // eyes filled solid
 
-static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool dead) {
-    // Terminal quadrant cells are ~twice as tall as wide; square cells squash him.
-    int ch = s * 2;
+// Bitmap columns of Clawd's two eyes (the row-1 gaps) — used by both blink ticks.
+static const int CLAWD_EYE_COLS[2] = {5, 12};
+
+// Left edge (in px from the mascot's x) of bitmap column c when Clawd is W px
+// wide. Rounding to nearest lets W be a non-multiple of 18 (fractional cell
+// widths) while keeping the edges symmetric, so both eyes render the same width.
+static inline int mascotEdge(int c, int W) { return (c * W + 9) / 18; }
+
+// W = total width; rh = row height, ~2x the cell width (W/18) — terminal quadrant
+// cells are about twice as tall as wide, and square cells squash him.
+static void drawMascot(TFT_eSPI& g, int x, int y, int W, int rh, uint16_t color, bool dead) {
     for (int r = 0; r < 5; r++) {
         uint32_t row = (dead && r == 1) ? CLAWD_DEAD_ROW1 : CLAWD_ROWS[r];
         for (int c = 0; c < 18; c++)
             if (row & (1UL << (17 - c)))
-                g.fillRect(x + c * s, y + r * ch, s, ch, color);
+                g.fillRect(x + mascotEdge(c, W), y + r * rh,
+                           mascotEdge(c + 1, W) - mascotEdge(c, W), rh, color);
     }
     if (dead) {
-        static const int eyeCols[2] = {5, 12};
         for (int e = 0; e < 2; e++) {
-            int cx = x + eyeCols[e] * s + s / 2;
-            int cy = y + ch + ch / 2;
+            int cx = x + (mascotEdge(CLAWD_EYE_COLS[e], W) +
+                          mascotEdge(CLAWD_EYE_COLS[e] + 1, W)) / 2;
+            int cy = y + rh + rh / 2;
             g.drawLine(cx - 3, cy - 4, cx + 3, cy + 4, C_BG);
             g.drawLine(cx - 2, cy - 4, cx + 4, cy + 4, C_BG);
             g.drawLine(cx + 3, cy - 4, cx - 3, cy + 4, C_BG);
@@ -428,55 +437,63 @@ static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool de
     }
 }
 
-// Bitmap columns of Clawd's two eyes (the row-1 gaps) — used by both blink ticks.
-static const int CLAWD_EYE_COLS[2] = {5, 12};
-
 // ── Model-health panel ──────────────────────────────────────────────────────
-// Both Mango boards keep the updated bars (reset rides on the bar row, see
-// uiDashboard). The bottom section then differs by screen size:
-//   • T-Display S3 (320x170): a full row of four labelled, blinking Clawds.
-//   • M5StickC Plus (240x135): one overall-health Clawd + a 2x2 "NAME STATUS" grid.
+// The space below the bars differs by screen size:
+//   • T-Display S3 (320x170): the reset countdowns sit on their own size-2 row
+//     below the bars (the Clarity layout — easier to read), then a full row of
+//     four labelled, blinking Clawds — no divider, the mascots speak for themselves.
+//   • M5StickC Plus (240x135): reset rides on the bar rows (no room below);
+//     a "── MODELS ──" divider, one overall-health Clawd + a 2x2 "NAME STATUS" grid.
 // drawStatusPanel() is the board-specific entry point either way, so uiDashboard
-// just calls it; the "── MODELS ──" divider is shared.
-static void drawModelsDivider(TFT_eSPI& g, int capY, int lineY) {
-    const char* cap = "MODELS";
-    int capW = (int)strlen(cap) * 6;
-    int cx   = SCREEN_W / 2;
-    g.setTextSize(1);
-    g.setTextColor(C_DIM, C_BG);
-    g.setCursor(cx - capW / 2, capY);
-    g.print(cap);
-    g.drawFastHLine(14, lineY, (cx - capW / 2 - 6) - 14, C_HEAD_DK);
-    g.drawFastHLine(cx + capW / 2 + 6, lineY,
-                    (SCREEN_W - 14) - (cx + capW / 2 + 6), C_HEAD_DK);
-}
+// just calls it.
 
 #ifdef BOARD_TDISPLAY_S3
-// ── T-Display S3: a row of four labelled Clawds (one per model) ─────────────
-// With the reset countdowns moved onto the bars, the freed space below carries a
-// "MODELS" divider and the four mascots, each named, each blinking when healthy.
-#define MASCOT_S        3                 // cell width (height is 2x)
-#define MASCOT_Y        104
+// ── T-Display S3: reset row below the bars + four labelled Clawds ───────────
+// Reset countdowns get their own row under the bars; the "MODELS" divider and
+// the four mascots — each named, each blinking when healthy — fill what's left.
+#define RESET_CAP_Y     80
+#define RESET_VAL_Y     92
+#define MASCOT_W        44                // fractional ~2.4px cells via mascotEdge
+#define MASCOT_RH       5                 // row height → 25px tall
+#define MASCOT_Y        122
 #define MASCOT_SPACING  80
 #define MASCOT_CX0      40
-#define MASCOT_NAME_Y   138
-#define MODELS_CAP_Y    86
-#define MODELS_LINE_Y   90
+#define MASCOT_NAME_Y   156
 #define MASCOT_CX(i) (MASCOT_CX0 + (i) * MASCOT_SPACING)
-#define MASCOT_X(i)  (MASCOT_CX(i) - 18 * MASCOT_S / 2)
+#define MASCOT_X(i)  (MASCOT_CX(i) - MASCOT_W / 2)
+
+// Size-2 countdown values — padded, opaque print overwrites in place so the
+// 10s clock tick can repaint them without clearing first.
+static void drawResetValues(TFT_eSPI& g, const char* h5rst, const char* d7rst) {
+    g.setTextColor(C_TEXT, C_BG);
+    g.setTextSize(2);
+    g.setCursor(10, RESET_VAL_Y);
+    g.printf("%-8s", h5rst);
+    g.setCursor(SCREEN_W / 2 + 10, RESET_VAL_Y);
+    g.printf("%-8s", d7rst);
+}
+
+static void drawResetRow(TFT_eSPI& g, const char* h5rst, const char* d7rst) {
+    g.setTextColor(C_DIM, C_BG);
+    g.setTextSize(1);
+    g.setCursor(10, RESET_CAP_Y);
+    g.print("5H RESET");
+    g.setCursor(SCREEN_W / 2 + 10, RESET_CAP_Y);
+    g.print("7D RESET");
+    drawResetValues(g, h5rst, d7rst);
+}
 
 static void drawStatusPanel(TFT_eSPI& g) {
     static const char* names[4] = {"HAIKU", "SONNET", "OPUS", "FABLE"};
     bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
                   s_modelStatus.opusUp,  s_modelStatus.fableUp};
-    drawModelsDivider(g, MODELS_CAP_Y, MODELS_LINE_Y);
     for (int i = 0; i < 4; i++) {
         int cx = MASCOT_CX(i);
         // Unknown (status never fetched) renders gray without X eyes, so a
         // status-page outage is never mistaken for a model outage.
         bool dead = s_modelStatus.ok && !up[i];
         uint16_t col = (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD;
-        drawMascot(g, MASCOT_X(i), MASCOT_Y, MASCOT_S, col, dead);
+        drawMascot(g, MASCOT_X(i), MASCOT_Y, MASCOT_W, MASCOT_RH, col, dead);
         g.setTextColor(C_DIM, C_BG);
         g.setTextSize(1);
         g.setCursor(cx - (int)strlen(names[i]) * 3, MASCOT_NAME_Y);
@@ -489,17 +506,18 @@ static void drawStatusPanel(TFT_eSPI& g) {
 void uiBlinkTick(bool closed) {
     bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
                   s_modelStatus.opusUp,  s_modelStatus.fableUp};
-    int ch = MASCOT_S * 2;
-    int ey = MASCOT_Y + ch;   // eye row 1
+    int ey = MASCOT_Y + MASCOT_RH;   // eye row 1
     for (int i = 0; i < 4; i++) {
         if (!s_modelStatus.ok || !up[i]) continue;   // dead/unknown don't blink
         for (int e = 0; e < 2; e++) {
-            int ex = MASCOT_X(i) + CLAWD_EYE_COLS[e] * MASCOT_S;
+            int ex = MASCOT_X(i) + mascotEdge(CLAWD_EYE_COLS[e], MASCOT_W);
+            int ew = mascotEdge(CLAWD_EYE_COLS[e] + 1, MASCOT_W) -
+                     mascotEdge(CLAWD_EYE_COLS[e], MASCOT_W);
             if (closed) {
-                lcd.fillRect(ex, ey, MASCOT_S, ch, C_HEAD);          // lid down
-                lcd.fillRect(ex, ey + ch / 2 - 1, MASCOT_S, 2, C_BG); // shut line
+                lcd.fillRect(ex, ey, ew, MASCOT_RH, C_HEAD);                  // lid down
+                lcd.fillRect(ex, ey + MASCOT_RH / 2 - 1, ew, 2, C_BG);        // shut line
             } else {
-                lcd.fillRect(ex, ey, MASCOT_S, ch, C_BG);            // eye open
+                lcd.fillRect(ex, ey, ew, MASCOT_RH, C_BG);                    // eye open
             }
         }
     }
@@ -517,6 +535,19 @@ void uiBlinkTick(bool closed) {
 #define PANEL_ROW0_Y    98
 #define PANEL_ROW1_Y    114
 
+static void drawModelsDivider(TFT_eSPI& g, int capY, int lineY) {
+    const char* cap = "MODELS";
+    int capW = (int)strlen(cap) * 6;
+    int cx   = SCREEN_W / 2;
+    g.setTextSize(1);
+    g.setTextColor(C_DIM, C_BG);
+    g.setCursor(cx - capW / 2, capY);
+    g.print(cap);
+    g.drawFastHLine(14, lineY, (cx - capW / 2 - 6) - 14, C_HEAD_DK);
+    g.drawFastHLine(cx + capW / 2 + 6, lineY,
+                    (SCREEN_W - 14) - (cx + capW / 2 + 6), C_HEAD_DK);
+}
+
 static void drawStatusPanel(TFT_eSPI& g) {
     static const char* names[4] = {"HAIKU", "SONNET", "OPUS", "FABLE"};
     bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
@@ -528,7 +559,7 @@ static void drawStatusPanel(TFT_eSPI& g) {
     bool anyDown = false;
     for (int i = 0; i < 4; i++) anyDown = anyDown || !up[i];
     bool dead = s_modelStatus.ok && anyDown;
-    drawMascot(g, PANEL_MASCOT_X, PANEL_MASCOT_Y, PANEL_MASCOT_S,
+    drawMascot(g, PANEL_MASCOT_X, PANEL_MASCOT_Y, 18 * PANEL_MASCOT_S, PANEL_MASCOT_S * 2,
                (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD, dead);
 
     const int colX[2] = {PANEL_COL0_X, PANEL_COL1_X};
@@ -636,6 +667,11 @@ void uiBootProgress(int percent, const char* label) {
 
     lcd.setCursor(SX(20), SY(100));
     lcd.print(label);
+
+#ifdef MANGO_UI
+    lcd.setCursor(SCREEN_W - SX(4) - (int)strlen("v" FW_VERSION) * TS(6), SCREEN_H - SY(12));
+    lcd.print("v" FW_VERSION);
+#endif
     halFlush();
 }
 
@@ -869,10 +905,17 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
     fmtCountdown(data.d7ResetEpoch, d7rst, sizeof(d7rst));
 
 #ifdef MANGO_UI
-    // Mango boards: each reset countdown rides on its bar's label row, freeing the
-    // bottom of the screen for a dedicated "MODELS" health panel.
+#ifdef BOARD_TDISPLAY_S3
+    // Tier L: % flush-right on the bar rows; the countdowns get their own
+    // size-2 row below the bars.
+    drawBar(g, SX(10), SY(24), barW, SY(10), data.h5, "5-HOUR");
+    drawBar(g, SX(10), SY(52), barW, SY(10), data.d7, "7-DAY");
+    drawResetRow(g, h5rst, d7rst);
+#else
+    // Tier S: each reset countdown rides on its bar's label row — no room below.
     drawBar(g, SX(10), SY(24), barW, SY(10), data.h5, "5-HOUR", h5rst);
     drawBar(g, SX(10), SY(52), barW, SY(10), data.d7, "7-DAY",  d7rst);
+#endif
     drawStatusPanel(g);
 #else
     drawBar(g, SX(10), SY(24), barW, SY(10), data.h5, "5-HOUR WINDOW");
@@ -931,10 +974,15 @@ void uiDashboardClock(const UsageData& data, unsigned long lastFetchMs, int rssi
     fmtCountdown(data.h5ResetEpoch, h5rst, sizeof(h5rst));
     fmtCountdown(data.d7ResetEpoch, d7rst, sizeof(d7rst));
 #ifdef MANGO_UI
-    // Mango boards: the countdowns live on the bar rows; refresh just those slots.
+#ifdef BOARD_TDISPLAY_S3
+    // Tier L: the countdowns live on their own row below the bars.
+    drawResetValues(g, h5rst, d7rst);
+#else
+    // Tier S: the countdowns live on the bar rows; refresh just those slots.
     int barW = SCREEN_W - SX(20);
     drawResetSlot(g, SX(10), barW, SY(24), h5rst);
     drawResetSlot(g, SX(10), barW, SY(52), d7rst);
+#endif
 #else
     g.setTextColor(C_TEXT, C_BG);
     g.setTextSize(TS(2));
