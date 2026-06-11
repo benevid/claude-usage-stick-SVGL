@@ -371,21 +371,23 @@ static const uint32_t CLAWD_ROWS[5] = {
 static const uint32_t CLAWD_DEAD_ROW1 = 0b000111111111111000;   // eyes filled solid
 
 static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool dead) {
+    // Terminal quadrant cells are ~twice as tall as wide; square cells squash him.
+    int ch = s * 2;
     for (int r = 0; r < 5; r++) {
         uint32_t row = (dead && r == 1) ? CLAWD_DEAD_ROW1 : CLAWD_ROWS[r];
         for (int c = 0; c < 18; c++)
             if (row & (1UL << (17 - c)))
-                g.fillRect(x + c * s, y + r * s, s, s, color);
+                g.fillRect(x + c * s, y + r * ch, s, ch, color);
     }
     if (dead) {
         static const int eyeCols[2] = {5, 12};
         for (int e = 0; e < 2; e++) {
             int cx = x + eyeCols[e] * s + s / 2;
-            int cy = y + s + s / 2;
-            g.drawLine(cx - 3, cy - 3, cx + 3, cy + 3, C_BG);
-            g.drawLine(cx - 2, cy - 3, cx + 4, cy + 3, C_BG);
-            g.drawLine(cx + 3, cy - 3, cx - 3, cy + 3, C_BG);
-            g.drawLine(cx + 4, cy - 3, cx - 2, cy + 3, C_BG);
+            int cy = y + ch + ch / 2;
+            g.drawLine(cx - 3, cy - 4, cx + 3, cy + 4, C_BG);
+            g.drawLine(cx - 2, cy - 4, cx + 4, cy + 4, C_BG);
+            g.drawLine(cx + 3, cy - 4, cx - 3, cy + 4, C_BG);
+            g.drawLine(cx + 4, cy - 4, cx - 2, cy + 4, C_BG);
         }
     }
 }
@@ -401,13 +403,14 @@ static const uint32_t CLAWD_LEG_FRAMES[4] = {
 static const int8_t CLAWD_JUMP_DY[4] = {0, 1, -2, -1};   // in cells
 
 static void drawMascotJump(TFT_eSPI& g, int x, int y, int s, uint16_t color, int frame) {
+    int ch = s * 2;   // same 1:2 cell aspect as drawMascot
     frame &= 3;
-    y += CLAWD_JUMP_DY[frame] * s;
+    y += CLAWD_JUMP_DY[frame] * ch;
     for (int r = 0; r < 5; r++) {
         uint32_t row = (r == 4) ? CLAWD_LEG_FRAMES[frame] : CLAWD_ROWS[r];
         for (int c = 0; c < 18; c++)
             if (row & (1UL << (17 - c)))
-                g.fillRect(x + c * s, y + r * s, s, s, color);
+                g.fillRect(x + c * s, y + r * ch, s, ch, color);
     }
 }
 
@@ -421,10 +424,10 @@ static void drawMascotRow(TFT_eSPI& g) {
         // status-page outage is never mistaken for a model outage.
         bool dead = s_modelStatus.ok && !up[i];
         uint16_t col = (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD;
-        drawMascot(g, cx - 27, 132, 3, col, dead);
+        drawMascot(g, cx - 27, 120, 3, col, dead);
         g.setTextColor(C_DIM, C_BG);
         g.setTextSize(1);
-        g.setCursor(cx - (int)strlen(names[i]) * 3, 152);
+        g.setCursor(cx - (int)strlen(names[i]) * 3, 154);
         g.print(names[i]);
     }
 }
