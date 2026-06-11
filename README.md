@@ -1,35 +1,64 @@
+<div align="center">
+
 # Claude Usage Stick
 
-A tiny standalone device that shows your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) rate-limit usage in real time. Polls the Anthropic API and displays your 5-hour and 7-day usage windows, reset countdowns, signal strength, and battery level.
+**Your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) rate limits, glanceable on a tiny ESP32 stick.**
 
-Supports eight boards:
-- **M5StickC Plus** (ESP32-PICO, 240x135 LCD)
-- **M5StickC Plus2** (ESP32-PICO-V3-02, 240x135 LCD)
-- **LilyGo T-Display S3** (ESP32-S3, 320x170 LCD)
-- **LilyGo T8 ESP32-S2** (ESP32-S2, 1.14" 135x240 ST7789 LCD)
-- **Elecrow CrowPanel Advance 3.5" HMI** (ESP32-S3, 480x320 IPS ILI9488 + GT911 touch)
-- **LilyGo T-Display S3 AMOLED** 1.91" (ESP32-S3, 240x536 RM67162 AMOLED — H712/H713/H705/H681/H717)
-- **TTGO T-Display ESP32** (ESP32, 1.14" 135x240 ST7789 LCD)
-- **ESP32-C3-OLED** (ESP32-C3, 0.42" 72x40 OLED) — breadboard-friendly; bring your own buttons
+[![Firmware](https://img.shields.io/badge/firmware-🥭_Mango_(v2)-D97757?style=flat-square)](#-the-ui)
+[![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP32_·_S2_·_S3_·_C3-FF7F00?style=flat-square&logo=platformio&logoColor=white)](https://platformio.org/)
+[![Framework](https://img.shields.io/badge/framework-Arduino-00979D?style=flat-square&logo=arduino&logoColor=white)](https://www.arduino.cc/)
+[![Boards](https://img.shields.io/badge/boards-8_supported-44cc11?style=flat-square)](#%EF%B8%8F-supported-hardware)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](#-license)
+[![PRs](https://img.shields.io/badge/PRs-welcome-D97757?style=flat-square)](https://github.com/oauramos/claude-usage-stick/pulls)
 
-<p align="center">
-  <img src="docs/boot.jpg" width="260" alt="Boot screen">
-  <img src="docs/pin.jpg" width="260" alt="PIN unlock">
-  <img src="docs/dashboard.jpg" width="260" alt="Dashboard">
-</p>
+<img src="assets/hero.jpg" width="720" alt="Claude Usage Stick — PIN unlock screen and usage dashboard on a LilyGo T-Display S3">
 
-<p align="center">
-  <img src="docs/esp32-c3-oled.jpg" width="400" alt="ESP32-C3-OLED running Claude Usage Stick">
-</p>
+*5-hour & 7-day usage windows · reset countdowns · model health mascots · PIN-encrypted token*
 
-## Versions
+</div>
 
-Firmware releases carry names. Each board's current version is listed in the [Hardware](#hardware) table.
+---
 
-| Version | Name | Boards | Highlights |
-| ------- | ---- | ------ | ---------- |
-| v1 | **Clarity** | All supported boards | Usage bars, reset countdowns, PIN unlock, captive-portal setup |
-| v2 | **Mango** | M5StickC Plus, LilyGo T-Display S3 | Everything in Clarity, plus: Claude model status (Haiku / Sonnet / Opus / Fable health from [status.claude.com](https://status.claude.com) — a downed model turns gray with X eyes, healthy ones blink), battery and WiFi-signal icons in the header, dashboard-styled PIN screen, reset countdowns inline on each usage bar, and screen flip (Button A) / brightness (Button B) |
+A standalone desk gadget that polls the Anthropic API and shows your Claude Code rate-limit usage in real time — no computer, no app, no cloud. Flash it, connect it to WiFi from your phone, and it just sits there telling you how much runway you have left.
+
+## ✨ Features
+
+- **Live usage bars** for the 5-hour and 7-day rate-limit windows
+- **Reset countdowns** so you know when capacity frees up
+- **Model status** *(Mango)* — Haiku / Sonnet / Opus / Fable health from [status.claude.com](https://status.claude.com), shown as blinking Clawd mascots; a downed model turns gray with X eyes
+- **PIN-protected** — your OAuth token is AES-256-GCM encrypted on-device; the PIN is never stored
+- **Captive-portal setup** — connect your phone to the device's WiFi AP and configure everything in a browser
+- **Battery & signal** shown on the dashboard
+- **Button controls** — brightness, screen flip, force refresh, factory reset
+
+## 🖥️ Supported hardware
+
+Each board has its own spec page with pinouts, controls, and quirks — click the name.
+
+| Board | MCU | Display | Firmware | PlatformIO env | Buy |
+| ----- | --- | ------- | -------- | -------------- | --- |
+| [M5StickC Plus](docs/m5stick-cplus.md) | ESP32-PICO | 1.14" 240×135 LCD | 🥭 **Mango (v2)** · tier S | `m5stick-cplus` | [AliExpress](https://s.click.aliexpress.com/e/_c3w3hHWl) |
+| [M5StickC Plus2](docs/m5stick-cplus2.md) | ESP32-PICO-V3-02 | 1.14" 240×135 LCD | Clarity (v1) | `m5stick-cplus2` | [AliExpress](https://s.click.aliexpress.com/e/_c3jkKlNj) |
+| [LilyGo T-Display S3](docs/tdisplay-s3.md) | ESP32-S3 | 1.9" 320×170 LCD | 🥭 **Mango (v2)** · tier L | `tdisplay-s3` | [AliExpress](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
+| [LilyGo T8 ESP32-S2](docs/t8-s2.md) | ESP32-S2 | 1.14" 135×240 LCD | Clarity (v1) | `t8-s2` | [AliExpress](https://s.click.aliexpress.com/e/_c2w1HnpJ) |
+| [Elecrow CrowPanel Advance 3.5"](docs/crowpanel-adv-35.md) | ESP32-S3 | 3.5" 480×320 IPS touch | Clarity (v1) | `crowpanel-adv-35` | [Elecrow](https://www.elecrow.com/crowpanel-advance-3-5-hmi-esp32-ai-display-480x320-artificial-intelligent-ips-touch-screen.html) |
+| [LilyGo T-Display S3 AMOLED 1.91"](docs/tdisplay-s3-amoled.md) | ESP32-S3 | 1.91" 240×536 AMOLED | Clarity (v1) | `tdisplay-s3-amoled` | [AliExpress](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
+| [TTGO T-Display ESP32](docs/tdisplay-esp32.md) | ESP32 | 1.14" 135×240 LCD | Clarity (v1) | `tdisplay-esp32` | [AliExpress](https://s.click.aliexpress.com/e/_c32HlGQ1) |
+| [ESP32-C3-OLED](docs/esp32c3-oled.md) | ESP32-C3 | 0.42" 72×40 OLED | Clarity (v1) | `esp32c3-oled` | [AliExpress](https://s.click.aliexpress.com/e/_c3JMxywv) |
+| M5Stack StickS3 | — | — | 🚧 in progress | — | [AliExpress](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
+
+Plus any USB-C cable for flashing and power.
+
+## 🎨 The UI
+
+Firmware releases carry names. Each board's current version is listed in the table above.
+
+### Versions
+
+| Version | Name | Highlights |
+| ------- | ---- | ---------- |
+| v1 | **Clarity** | The original dashboard — usage bars, reset countdowns, PIN unlock, captive-portal setup |
+| v2 | 🥭 **Mango** | Everything in Clarity, plus model-status mascots, header icons, inline countdowns, and screen flip — see below |
 
 ### Display tiers
 
@@ -42,87 +71,17 @@ The Mango dashboard keeps the same header and usage bars on every board, and ada
 | **L** | large LCD | ~320×170 | **LilyGo T-Display S3** | A row of four labelled Clawds (one per model), each blinking when healthy | ✅ |
 | **XL** | big / touch | ≥ 480×320 | CrowPanel 3.5", S3 AMOLED | — | ⏳ Pending |
 
-> Boards still on **Clarity (v1)** (M5StickC Plus2, TTGO T-Display, T8-S2, CrowPanel, S3 AMOLED, ESP32-C3-OLED) keep the original minimal dashboard until they're migrated to their tier.
+> Boards still on **Clarity (v1)** keep the original minimal dashboard until they're migrated to their tier.
 
-## Features
+### What Mango adds
 
-- **Live usage bars** for the 5-hour and 7-day rate-limit windows
-- **Reset countdowns** so you know when capacity frees up
-- **PIN-protected** — your OAuth token is AES-256-GCM encrypted on-device; the PIN is never stored
-- **Captive-portal setup** — connect your phone to the device's WiFi AP and configure everything in a browser
-- **Battery & signal info** shown on the dashboard
-- **Button controls** — cycle brightness (A), force refresh (B), factory reset (hold A+B on boot)
-- **Model status** *(Mango)* — Haiku / Sonnet / Opus / Fable health from the Claude status page, shown as a row of Clawd mascots (tier L) or a text grid with one overall-health Clawd (tier S); a downed model turns gray with X eyes, healthy ones blink
-- **Header icons** *(Mango)* — battery level and WiFi signal strength as icons in the header bar
-- **Inline reset countdowns** *(Mango)* — each usage bar shows its own reset time on the bar row, freeing the bottom of the screen for the MODELS section
+- **Model status mascots** — Haiku / Sonnet / Opus / Fable health from the Claude status page; a downed model turns gray with X eyes, healthy ones blink
+- **Header icons** — battery level and WiFi signal strength as icons in the header bar
+- **Inline reset countdowns** — each usage bar shows its own reset time on the bar row, freeing the bottom of the screen for the MODELS section
+- **Dashboard-styled PIN screen** — the unlock screen matches the dashboard look
+- **Screen flip & brightness** — Button A flips the screen 180°, Button B cycles brightness; refresh happens automatically
 
-## Hardware
-
-Use one of these supported boards:
-
-| Board | MCU | Display | Battery | Supported | Version | Buy |
-| ----- | --- | ------- | ------- | --------- | ------- | --- |
-| M5StickC Plus | ESP32-PICO | 1.14" 240x135 | 120 mAh | ✅ | **Mango (v2) — tier S** | [aliexpress.com](https://s.click.aliexpress.com/e/_c3w3hHWl) |
-| M5StickC Plus2 | ESP32-PICO-V3-02 | 1.14" 240x135 | 200 mAh | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c3jkKlNj) |
-| LilyGo T-Display S3 | ESP32-S3 | 1.9" 320x170 LCD | 1300 mAh | ✅ | **Mango (v2) — tier L** | [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
-| LilyGo T8 ESP32-S2 | ESP32-S2 | 1.14" 135x240 LCD | external (JST) | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c2w1HnpJ) |
-| Elecrow CrowPanel Advance 3.5" HMI | ESP32-S3 | 3.5" 480x320 IPS (touch) | external | ✅¹ | Clarity (v1) | [elecrow.com](https://www.elecrow.com/crowpanel-advance-3-5-hmi-esp32-ai-display-480x320-artificial-intelligent-ips-touch-screen.html) |
-| LilyGo T-Display S3 AMOLED (1.91") | ESP32-S3 | 1.91" 240x536 AMOLED | varies | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
-| TTGO T-Display ESP32 | ESP32 | 1.14" 240x135 LCD | external (JST 1.25mm) | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c32HlGQ1) |
-| ESP32-C3-OLED | ESP32-C3 | 0.42" 72x40 OLED | external | ✅ | Clarity (v1) | [aliexpress.com](https://s.click.aliexpress.com/e/_c3JMxywv) |
-| M5Stack StickS3 | — | — | — | 🚧 In progress | — | [aliexpress.com](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
-
-> **T8 ESP32-S2 notes**
->
-> - **Verified on hardware** — display, WiFi provisioning, the encrypted dashboard, and button input all work.
-> - **One button, two roles** — the board exposes only the onboard **BOOT** button (GPIO0), so controls are split by press length: **short tap = Button A** (cycle digit / brightness), **long press = Button B** (confirm digit / refresh).
-> - **No on-boot factory reset** — GPIO0 is a strapping pin, so "hold A+B on boot" is unavailable; re-flash to wipe NVS.
-> - **No battery readout** — there's no confirmed battery-sense ADC, so battery percentage isn't shown.
-
-> ¹ **CrowPanel Advance 3.5":** this is a touch-only HMI with no physical user buttons, so the two-button UX maps to touch zones — **tap the LEFT half of the screen for Button A** (cycle digit / brightness) and the **RIGHT half for Button B** (confirm digit / refresh). The hold-A+B factory reset is unavailable; re-flash to wipe NVS. Battery % is not shown.
-
-Plus any USB-C cable for flashing and power.
-
-### ESP32-C3-OLED wiring
-
-The ESP32-C3-OLED module has no built-in buttons, so you wire two externally. The firmware expects both inputs to be **active-HIGH** (HIGH = pressed, LOW = idle) with internal pull-downs enabled.
-
-| Signal | GPIO | Notes |
-| ------ | ---- | ----- |
-| Button A (cycle brightness / cycle digit) | GPIO 3 | active-HIGH |
-| Button B (force refresh / confirm digit) | GPIO 7 | active-HIGH |
-| I²C SDA | GPIO 5 | display (built-in) |
-| I²C SCL | GPIO 6 | display (built-in) |
-| Onboard LED | GPIO 8 | active-LOW (HIGH = off) |
-
-> **Do not wire anything to GPIO 9 (BOOT/BOOT0)** — it is a strapping pin used for download mode.
-
-#### Option A — tactile push-buttons
-
-Wire each button between the GPIO pin and 3.3 V. When the button is open the internal pull-down holds the pin LOW; pressing it pulls it HIGH.
-
-```
-3.3 V ──┤button├── GPIO 3   (Button A)
-3.3 V ──┤button├── GPIO 7   (Button B)
-```
-
-#### Option B — capacitive touch sensors
-
-Any module that outputs a logic-HIGH signal when touched works as a drop-in replacement (e.g. TTP223-based pads). Wire the sensor's output to the GPIO pin and its power pins to 3.3 V and GND. The signal polarity and pull-down behaviour are identical to Option A.
-
-<p align="center">
-  <img src="docs/esp32-c3-oled-touch-buttons.jpg" width="500" alt="ESP32-C3-OLED wired with capacitive touch sensors on GPIO 3 and GPIO 7">
-</p>
-
-## How It Works
-
-1. The device sends a minimal API request (`max_tokens: 1`) to the Anthropic Messages endpoint using your OAuth token
-2. It reads the `anthropic-ratelimit-unified-5h-utilization` and `anthropic-ratelimit-unified-7d-utilization` response headers
-3. The dashboard updates on a configurable interval (30s–5min)
-
-The token never leaves the device. It is encrypted with AES-256-GCM using a key derived from your PIN (PBKDF via iterated SHA-256, 10 000 rounds).
-
-## Setup
+## 🚀 Quick start
 
 ### Prerequisites
 
@@ -130,83 +89,64 @@ The token never leaves the device. It is encrypted with AES-256-GCM using a key 
 - A supported board connected via USB-C
 - A Claude Code OAuth token (run `claude setup-token` in your terminal)
 
-### Flash the firmware
+### 1. Flash the firmware
+
+Pick your board's env from the [hardware table](#%EF%B8%8F-supported-hardware), then:
 
 ```bash
-# Clone the repo
 git clone https://github.com/oauramos/claude-usage-stick.git
 cd claude-usage-stick
 
-# M5StickC Plus
-pio run -e m5stick-cplus -t upload
-pio run -e m5stick-cplus -t uploadfs
-
-# M5StickC Plus2
-pio run -e m5stick-cplus2 -t upload
-pio run -e m5stick-cplus2 -t uploadfs
-
-# LilyGo T-Display S3 (regular LCD variant)
-pio run -e tdisplay-s3 -t upload
-pio run -e tdisplay-s3 -t uploadfs
-
-# LilyGo T8 ESP32-S2 (1.14" ST7789 LCD)
-pio run -e t8-s2 -t upload
-pio run -e t8-s2 -t uploadfs
-
-# Elecrow CrowPanel Advance 3.5" HMI (ILI9488 + GT911 touch)
-pio run -e crowpanel-adv-35 -t upload
-pio run -e crowpanel-adv-35 -t uploadfs
-
-# LilyGo T-Display S3 AMOLED 1.91" (H712/H713/H705/H681/H717)
-pio run -e tdisplay-s3-amoled -t upload
-pio run -e tdisplay-s3-amoled -t uploadfs
-
-# TTGO T-Display ESP32 (1.14" ST7789 LCD)
-pio run -e tdisplay-esp32 -t upload
-pio run -e tdisplay-esp32 -t uploadfs
-
-# ESP32-C3-OLED
-pio run -e esp32c3-oled -t upload
-pio run -e esp32c3-oled -t uploadfs
+pio run -e <env> -t upload      # firmware
+pio run -e <env> -t uploadfs    # web setup UI (SPIFFS)
 ```
-
-> **AMOLED note:** the panel variant is auto-detected at runtime by the LilyGo_AMOLED library, so a single `tdisplay-s3-amoled` build covers all 1.91" AMOLED revisions (touch and non-touch, V1.0/V2.0/Black Shell). On touch-equipped variants (H705/H681/H717), tapping the screen anywhere acts as Button B.
 
 > **Apple Silicon note:** If `uploadfs` fails with "Bad CPU type", install Rosetta (`softwareupdate --install-rosetta`) or use the included Python fallback:
 > ```bash
 > python3 upload_data.py
 > ```
 
-### Configure the device
+### 2. Configure the device
 
 1. On first boot (or after factory reset), the device creates a WiFi access point named `ClaudeMonitor-XXXX`
-2. Connect your phone or laptop to that network
-   - **LCD boards** — the password is shown on the device screen
-   - **ESP32-C3-OLED** — a simple 8-digit password is shown on the OLED (`Pass:` line)
+2. Connect your phone or laptop to that network — the password is shown on the device screen
 3. Open `http://192.168.4.1` in a browser
 4. Fill in your WiFi credentials, OAuth token, and a 4-digit encryption PIN
 5. Hit **Save & Reboot** — the device encrypts the token, stores it, and connects to your WiFi
 
-### Daily use
+### 3. Daily use
 
-On each boot, enter your PIN using the device buttons:
+On each boot, enter your PIN using the device buttons: **Button A** cycles the current digit (0–9), **Button B** confirms and moves to the next. Once unlocked, the dashboard appears and auto-refreshes.
 
-- **Button A** — cycle the current digit (0–9)
-- **Button B** — confirm and move to the next digit
+| Button | Clarity (v1) | 🥭 Mango (v2) |
+| ------ | ------------ | ------------- |
+| A | Cycle brightness | Flip screen 180° |
+| B | Force refresh | Cycle brightness |
+| A+B held on boot | Factory reset | Factory reset |
 
-Once unlocked, the dashboard appears and auto-refreshes.
+> Single-button and touch boards (T8-S2, CrowPanel, AMOLED, ESP32-C3-OLED) map these differently — see your [board's page](#%EF%B8%8F-supported-hardware).
 
-| Button | Dashboard action |
-| ------ | ---------------- |
-| A | Cycle screen brightness (off → dim → normal → bright); ESP32-C3-OLED: toggle on/off only |
-| B | Force an immediate refresh |
-| A+B held on boot | Factory reset (wipes all stored data) |
+## ⚙️ How it works
 
-> **Mango (M5StickC Plus & T-Display S3):** Button A flips the screen 180° and Button B cycles brightness; refresh happens automatically on the poll interval.
+1. The device sends a minimal API request (`max_tokens: 1`) to the Anthropic Messages endpoint using your OAuth token
+2. It reads the `anthropic-ratelimit-unified-5h-utilization` and `anthropic-ratelimit-unified-7d-utilization` response headers
+3. The dashboard updates on a configurable interval (30s–5min)
 
-## Project Structure
+The token never leaves the device. It is encrypted with AES-256-GCM using a key derived from your PIN (PBKDF via iterated SHA-256, 10 000 rounds).
+
+## 🔐 Security
+
+- The OAuth token is encrypted with AES-256-GCM before being written to NVS flash
+- The encryption key is derived from your PIN + device MAC salt through 10 000 rounds of SHA-256
+- The PIN is **never stored** — wrong PIN = failed decryption (GCM tag mismatch)
+- After 10 failed PIN attempts, all credentials are wiped and the device resets to setup mode
+- Lockout delay doubles after each failure (60s → 120s → 240s → ...)
+
+## 🗂️ Project structure
 
 ```
+assets/           — images (hero, gallery, wiring photos)
+docs/             — per-board hardware specs, flashing & controls
 src/
   main.cpp        — boot flow, WiFi, PIN entry, main loop
   hal.cpp/h       — hardware abstraction (display, buttons, battery, backlight)
@@ -219,16 +159,23 @@ data/
   setup.html      — web UI served during provisioning
 server/
   usage_proxy.py  — optional local caching proxy (reads token from macOS Keychain)
+platformio.ini    — one build env per board
 ```
 
-## Security
+## 📸 Gallery
 
-- The OAuth token is encrypted with AES-256-GCM before being written to NVS flash
-- The encryption key is derived from your PIN + device MAC salt through 10 000 rounds of SHA-256
-- The PIN is **never stored** — wrong PIN = failed decryption (GCM tag mismatch)
-- After 10 failed PIN attempts, all credentials are wiped and the device resets to setup mode
-- Lockout delay doubles after each failure (60s → 120s → 240s → ...)
+Real builds in the wild. Got a Claude Usage Stick on your desk? PRs with photos are welcome!
 
-## License
+<p align="center">
+  <img src="assets/boot.jpg" width="260" alt="Boot screen">
+  <img src="assets/pin.jpg" width="260" alt="PIN unlock">
+  <img src="assets/dashboard.jpg" width="260" alt="Dashboard">
+</p>
+
+<p align="center">
+  <img src="assets/esp32-c3-oled.jpg" width="400" alt="ESP32-C3-OLED running Claude Usage Stick">
+</p>
+
+## 📄 License
 
 MIT
