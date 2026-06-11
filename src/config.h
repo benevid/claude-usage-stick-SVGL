@@ -1,5 +1,8 @@
 #pragma once
 
+// ── Firmware version ─────────────────────────────────────
+#define FW_VERSION              "2.0.0"  // Mango — shown on the Mango boot screen
+
 // ── Polling ──────────────────────────────────────────────
 #define DEFAULT_POLL_SEC        120
 #define MIN_POLL_SEC            30

@@ -10,7 +10,7 @@ Part of [Claude Usage Stick](../README.md). The biggest small-format screen in t
 | Display | 1.9" ST7789 LCD, 320×170, 8-bit parallel |
 | Battery | External via JST connector (not included) |
 | Buttons | Button A (BOOT, GPIO 0) · Button B (KEY, GPIO 14) |
-| Firmware | 🥭 **Mango (v2)** — display tier **L** (reference board) |
+| Firmware | 🥭 **Mango (v2.0.0)** — display tier **L** (reference board) |
 | PlatformIO env | `tdisplay-s3` |
 | Buy | [aliexpress.com](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
 
@@ -29,11 +29,12 @@ pio run -e tdisplay-s3 -t uploadfs   # web setup UI (SPIFFS)
 | ------- | -------- | -------- |
 | PIN entry | Cycle the current digit (0–9) | Confirm digit, move to the next |
 | Dashboard | Flip screen 180° | Cycle brightness |
+| Dashboard | Press **A+B** together = force refresh | |
 | On boot | Hold **A+B** = factory reset (wipes all stored data) | |
 
-Refresh happens automatically on the poll interval — Mango has no manual-refresh button.
+Refresh happens automatically on the poll interval; press **A+B** together to force one now.
 
 ## Notes
 
-- As the **tier L** reference board, the dashboard's MODELS section shows a row of four labelled Clawd mascots (Haiku / Sonnet / Opus / Fable), each blinking while healthy — see [Display tiers](../README.md#display-tiers).
+- As the **tier L** reference board, the dashboard shows the 5H/7D reset countdowns in large type on their own row below the bars, and the MODELS section shows a row of four labelled Clawd mascots (Haiku / Sonnet / Opus / Fable), each blinking while healthy — see [Display tiers](../README.md#display-tiers).
 - During setup, the WiFi AP password is shown on the device screen.

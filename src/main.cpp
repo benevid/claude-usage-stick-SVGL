@@ -2,8 +2,9 @@
  * Claude Code Usage Monitor — Standalone WiFi
  * Supports: M5StickC Plus, M5StickC Plus2, LilyGo T-Display S3, ESP32-C3-OLED
  *
- * Button A: cycle digit (PIN) / cycle brightness (dashboard)
- * Button B: confirm digit (PIN) / force refresh (dashboard)
+ * PIN entry: A cycles the digit, B confirms
+ * Dashboard (Clarity): A cycles brightness, B forces a refresh
+ * Dashboard (Mango):   A flips the screen, B cycles brightness, A+B force refresh
  * A+B held on boot: factory reset → wipe NVS → re-enter setup
  *
  * ESP32-C3-OLED wiring (both buttons external, active-LOW to GND):
@@ -214,13 +215,24 @@ void loop() {
     halUpdate();
 
 #ifdef MANGO_UI
-    // A flips the screen 180°, B cycles brightness. Refresh stays automatic.
-    if (halBtnAWasPressed()) {
+    // A flips the screen 180°, B cycles brightness, A+B together = force refresh
+    // (the Clarity Button-B action). A single press only commits after a short
+    // window so the other button can still join to form the combo.
+    static unsigned long aPressAt = 0, bPressAt = 0;
+    const unsigned long comboWindowMs = 350;
+    if (halBtnAWasPressed()) aPressAt = millis();
+    if (halBtnBWasPressed()) bPressAt = millis();
+
+    if ((aPressAt && (bPressAt || halBtnBIsPressed())) ||
+        (bPressAt && halBtnAIsPressed())) {
+        aPressAt = bPressAt = 0;
+        refresh();
+    } else if (aPressAt && millis() - aPressAt > comboWindowMs) {
+        aPressAt = 0;
         uiToggleRotation();
         uiDashboard(usage, lastFetch, WiFi.RSSI(), halBatPercent());
-    }
-
-    if (halBtnBWasPressed()) {
+    } else if (bPressAt && millis() - bPressAt > comboWindowMs) {
+        bPressAt = 0;
         brightness = (brightness + 1) % 4;
         halSetBrightness(brightness);
     }
