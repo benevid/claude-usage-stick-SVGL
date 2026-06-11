@@ -441,23 +441,11 @@ static void drawMascot(TFT_eSPI& g, int x, int y, int W, int rh, uint16_t color,
 // The space below the bars differs by screen size:
 //   • T-Display S3 (320x170): the reset countdowns sit on their own size-2 row
 //     below the bars (the Clarity layout — easier to read), then a full row of
-//     four labelled, blinking Clawds.
+//     four labelled, blinking Clawds — no divider, the mascots speak for themselves.
 //   • M5StickC Plus (240x135): reset rides on the bar rows (no room below);
-//     one overall-health Clawd + a 2x2 "NAME STATUS" grid.
+//     a "── MODELS ──" divider, one overall-health Clawd + a 2x2 "NAME STATUS" grid.
 // drawStatusPanel() is the board-specific entry point either way, so uiDashboard
-// just calls it; the "── MODELS ──" divider is shared.
-static void drawModelsDivider(TFT_eSPI& g, int capY, int lineY) {
-    const char* cap = "MODELS";
-    int capW = (int)strlen(cap) * 6;
-    int cx   = SCREEN_W / 2;
-    g.setTextSize(1);
-    g.setTextColor(C_DIM, C_BG);
-    g.setCursor(cx - capW / 2, capY);
-    g.print(cap);
-    g.drawFastHLine(14, lineY, (cx - capW / 2 - 6) - 14, C_HEAD_DK);
-    g.drawFastHLine(cx + capW / 2 + 6, lineY,
-                    (SCREEN_W - 14) - (cx + capW / 2 + 6), C_HEAD_DK);
-}
+// just calls it.
 
 #ifdef BOARD_TDISPLAY_S3
 // ── T-Display S3: reset row below the bars + four labelled Clawds ───────────
@@ -467,12 +455,10 @@ static void drawModelsDivider(TFT_eSPI& g, int capY, int lineY) {
 #define RESET_VAL_Y     92
 #define MASCOT_W        44                // fractional ~2.4px cells via mascotEdge
 #define MASCOT_RH       5                 // row height → 25px tall
-#define MASCOT_Y        128
+#define MASCOT_Y        122
 #define MASCOT_SPACING  80
 #define MASCOT_CX0      40
-#define MASCOT_NAME_Y   160
-#define MODELS_CAP_Y    112
-#define MODELS_LINE_Y   116
+#define MASCOT_NAME_Y   156
 #define MASCOT_CX(i) (MASCOT_CX0 + (i) * MASCOT_SPACING)
 #define MASCOT_X(i)  (MASCOT_CX(i) - MASCOT_W / 2)
 
@@ -501,7 +487,6 @@ static void drawStatusPanel(TFT_eSPI& g) {
     static const char* names[4] = {"HAIKU", "SONNET", "OPUS", "FABLE"};
     bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
                   s_modelStatus.opusUp,  s_modelStatus.fableUp};
-    drawModelsDivider(g, MODELS_CAP_Y, MODELS_LINE_Y);
     for (int i = 0; i < 4; i++) {
         int cx = MASCOT_CX(i);
         // Unknown (status never fetched) renders gray without X eyes, so a
@@ -549,6 +534,19 @@ void uiBlinkTick(bool closed) {
 #define PANEL_COL1_X    164
 #define PANEL_ROW0_Y    98
 #define PANEL_ROW1_Y    114
+
+static void drawModelsDivider(TFT_eSPI& g, int capY, int lineY) {
+    const char* cap = "MODELS";
+    int capW = (int)strlen(cap) * 6;
+    int cx   = SCREEN_W / 2;
+    g.setTextSize(1);
+    g.setTextColor(C_DIM, C_BG);
+    g.setCursor(cx - capW / 2, capY);
+    g.print(cap);
+    g.drawFastHLine(14, lineY, (cx - capW / 2 - 6) - 14, C_HEAD_DK);
+    g.drawFastHLine(cx + capW / 2 + 6, lineY,
+                    (SCREEN_W - 14) - (cx + capW / 2 + 6), C_HEAD_DK);
+}
 
 static void drawStatusPanel(TFT_eSPI& g) {
     static const char* names[4] = {"HAIKU", "SONNET", "OPUS", "FABLE"};
