@@ -527,14 +527,33 @@ void uiPinScreen(int pos, const int digits[4]) {
     halClear(C_BG);
 #endif
 
+#ifdef BOARD_TDISPLAY_S3
+    // Same dress code as the dashboard: orange header band + Clawd standing guard.
+    g.fillRect(0, 0, SCREEN_W, 18, C_HEAD);
+    g.setTextColor(C_TEXT, C_HEAD);
+    g.setTextSize(1);
+    g.setCursor(4, 5);
+    g.print("CLAUDE USAGE");
+    g.setCursor(SCREEN_W - 4 - 6 * 6, 5);
+    g.print("LOCKED");
+    drawMascot(g, (SCREEN_W - 54) / 2, 24, 3, C_HEAD, false);
+    g.setTextColor(C_DIM, C_BG);
+    g.setCursor((SCREEN_W - 10 * 6) / 2, 46);
+    g.print("UNLOCK PIN");
+#else
     g.setTextColor(C_DIM, C_BG);
     g.setTextSize(TS(1));
     g.setCursor(SX(70), SY(15));
     g.print("UNLOCK PIN");
+#endif
 
     int boxW = SX(30), boxH = SY(36), gap = SX(12);
     int startX = (SCREEN_W - (4 * boxW + 3 * gap)) / 2;
+#ifdef BOARD_TDISPLAY_S3
+    int boxY = 58;   // pushed down to clear the header + mascot
+#else
     int boxY = SY(40);
+#endif
 
     for (int i = 0; i < 4; i++) {
         int x = startX + i * (boxW + gap);
@@ -555,9 +574,14 @@ void uiPinScreen(int pos, const int digits[4]) {
         }
     }
 
+#ifdef BOARD_TDISPLAY_S3
+    const int hintY = 104;   // below the relocated boxes
+#else
+    const int hintY = SY(95);
+#endif
     g.setTextColor(C_DIM, C_BG);
     g.setTextSize(TS(1));
-    g.setCursor(SX(20), SY(95));
+    g.setCursor(SX(20), hintY);
 #ifdef BOARD_T8_S2
     // Single BOOT button: short tap cycles the digit, long press confirms.
     g.print("[tap] cycle digit");
@@ -589,10 +613,15 @@ void uiPinScreen(int pos, const int digits[4]) {
     }
 #else
     g.print("[A] cycle digit");
-    g.setCursor(SX(148), SY(95));
+    g.setCursor(SX(148), hintY);
     g.print("[B] confirm");
 
-    g.setCursor(SX(35), SY(118));
+#ifdef BOARD_TDISPLAY_S3
+    const int noteY = 126;
+#else
+    const int noteY = SY(118);
+#endif
+    g.setCursor(SX(35), noteY);
     g.setTextColor(0x4A49, C_BG);
     g.print("Hold A+B on boot = factory reset");
     halFlush();
