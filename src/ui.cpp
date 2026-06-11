@@ -360,6 +360,13 @@ void uiSetModelStatus(const ModelStatus& s) {
     s_modelStatus = s;
 }
 
+void uiToggleRotation() {
+    static bool flipped = false;
+    flipped = !flipped;
+    lcd.setRotation(flipped ? 3 : SCREEN_ROT);   // 1 and 3 are the two landscapes
+    halClear(C_BG);
+}
+
 // Clawd, 18x5 px (MSB = leftmost column). The row-1 gaps at cols 5/12 are the eyes.
 static const uint32_t CLAWD_ROWS[5] = {
     0b000111111111111000,
@@ -389,28 +396,6 @@ static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool de
             g.drawLine(cx + 3, cy - 4, cx - 3, cy + 4, C_BG);
             g.drawLine(cx + 4, cy - 4, cx - 2, cy + 4, C_BG);
         }
-    }
-}
-
-// Jump cycle for loading screens (mirrors Claude Code's JUMP_WAVE pose set):
-// stand, crouch, leap, land — leg variants plus a vertical hop offset.
-static const uint32_t CLAWD_LEG_FRAMES[4] = {
-    0b000010100001010000,   // standing
-    0b000100100001001000,   // crouch, legs splayed
-    0b000001010010100000,   // airborne, legs tucked
-    0b001000100001000100,   // landing, legs spread
-};
-static const int8_t CLAWD_JUMP_DY[4] = {0, 1, -2, -1};   // in cells
-
-static void drawMascotJump(TFT_eSPI& g, int x, int y, int s, uint16_t color, int frame) {
-    int ch = s * 2;   // same 1:2 cell aspect as drawMascot
-    frame &= 3;
-    y += CLAWD_JUMP_DY[frame] * ch;
-    for (int r = 0; r < 5; r++) {
-        uint32_t row = (r == 4) ? CLAWD_LEG_FRAMES[frame] : CLAWD_ROWS[r];
-        for (int c = 0; c < 18; c++)
-            if (row & (1UL << (17 - c)))
-                g.fillRect(x + c * s, y + r * ch, s, ch, color);
     }
 }
 
@@ -484,12 +469,6 @@ void uiBootProgress(int percent, const char* label) {
     lcd.setTextSize(TS(2));
     lcd.setCursor(SX(30), SY(20));
     lcd.print("Claude Usage");
-
-#ifdef BOARD_TDISPLAY_S3
-    // Clawd hops one pose per boot step, beside the title.
-    static uint8_t bootAnim = 0;
-    drawMascotJump(lcd, 240, 16, 3, C_HEAD, bootAnim++);
-#endif
 
     int bx = SX(20), by = SY(60), bw = SCREEN_W - SX(40), bh = SY(14);
     lcd.fillRect(bx, by, bw, bh, C_BAR_BG);
@@ -681,12 +660,6 @@ void uiConnecting(const char* ssid, int attempt) {
         lcd.setCursor(SX(10), SY(90));
         lcd.printf("Attempt %d", attempt);
     }
-
-#ifdef BOARD_TDISPLAY_S3
-    // Redrawn every 500ms by the connect loop — Clawd jumps while we wait.
-    static uint8_t connAnim = 0;
-    drawMascotJump(lcd, (SCREEN_W - 54) / 2, 130, 3, C_HEAD, connAnim++);
-#endif
     halFlush();
 }
 

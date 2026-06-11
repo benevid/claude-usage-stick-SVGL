@@ -18,4 +18,6 @@ void uiLockout(int attempts, int maxAttempts, int lockoutSec);
 #ifdef BOARD_TDISPLAY_S3
 // Latest model health for the dashboard's mascot row; cached until the next call.
 void uiSetModelStatus(const ModelStatus& s);
+// Flip the panel 180° (and clear it); caller redraws the current screen.
+void uiToggleRotation();
 #endif

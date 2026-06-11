@@ -213,6 +213,18 @@ void setup() {
 void loop() {
     halUpdate();
 
+#ifdef BOARD_TDISPLAY_S3
+    // A flips the screen 180°, B cycles brightness. Refresh stays automatic.
+    if (halBtnAWasPressed()) {
+        uiToggleRotation();
+        uiDashboard(usage, lastFetch, WiFi.RSSI(), halBatPercent());
+    }
+
+    if (halBtnBWasPressed()) {
+        brightness = (brightness + 1) % 4;
+        halSetBrightness(brightness);
+    }
+#else
     if (halBtnAWasPressed()) {
 #ifdef BOARD_ESP32C3_OLED
         brightness = (brightness + 1) % 2; // on/off only — contrast change imperceptible
@@ -225,6 +237,7 @@ void loop() {
     if (halBtnBWasPressed()) {
         refresh();
     }
+#endif
 
     if (millis() - lastFetch >= (unsigned long)pollMs) {
         refresh();
