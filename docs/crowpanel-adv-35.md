@@ -14,7 +14,7 @@ Part of [Claude Usage Stick](../README.md). The biggest screen in the lineup —
 | USB | CH340K UART bridge (not native USB CDC) |
 | Firmware | Clarity (v1) — target display tier **XL** (not yet migrated) |
 | PlatformIO env | `crowpanel-adv-35` |
-| Buy | [elecrow.com](https://www.elecrow.com/crowpanel-advance-3-5-hmi-esp32-ai-display-480x320-artificial-intelligent-ips-touch-screen.html) |
+| Buy | [aliexpress.com](https://s.click.aliexpress.com/e/_c4lDErmN) |
 
 ## Flash
 

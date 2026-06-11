@@ -41,7 +41,7 @@ Each board has its own spec page with pinouts, controls, and quirks — click th
 | [M5StickC Plus2](docs/m5stick-cplus2.md) | ESP32-PICO-V3-02 | 1.14" 240×135 LCD | Clarity (v1) | `m5stick-cplus2` | [AliExpress](https://s.click.aliexpress.com/e/_c3jkKlNj) |
 | [LilyGo T-Display S3](docs/tdisplay-s3.md) | ESP32-S3 | 1.9" 320×170 LCD | 🥭 **Mango (v2)** · tier L | `tdisplay-s3` | [AliExpress](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
 | [LilyGo T8 ESP32-S2](docs/t8-s2.md) | ESP32-S2 | 1.14" 135×240 LCD | Clarity (v1) | `t8-s2` | [AliExpress](https://s.click.aliexpress.com/e/_c2w1HnpJ) |
-| [Elecrow CrowPanel Advance 3.5"](docs/crowpanel-adv-35.md) | ESP32-S3 | 3.5" 480×320 IPS touch | Clarity (v1) | `crowpanel-adv-35` | [Elecrow](https://www.elecrow.com/crowpanel-advance-3-5-hmi-esp32-ai-display-480x320-artificial-intelligent-ips-touch-screen.html) |
+| [Elecrow CrowPanel Advance 3.5"](docs/crowpanel-adv-35.md) | ESP32-S3 | 3.5" 480×320 IPS touch | Clarity (v1) | `crowpanel-adv-35` | [AliExpress](https://s.click.aliexpress.com/e/_c4lDErmN) |
 | [LilyGo T-Display S3 AMOLED 1.91"](docs/tdisplay-s3-amoled.md) | ESP32-S3 | 1.91" 240×536 AMOLED | Clarity (v1) | `tdisplay-s3-amoled` | [AliExpress](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
 | [TTGO T-Display ESP32](docs/tdisplay-esp32.md) | ESP32 | 1.14" 135×240 LCD | Clarity (v1) | `tdisplay-esp32` | [AliExpress](https://s.click.aliexpress.com/e/_c32HlGQ1) |
 | [ESP32-C3-OLED](docs/esp32c3-oled.md) | ESP32-C3 | 0.42" 72×40 OLED | Clarity (v1) | `esp32c3-oled` | [AliExpress](https://s.click.aliexpress.com/e/_c3JMxywv) |
