@@ -406,20 +406,29 @@ static const uint32_t CLAWD_ROWS[5] = {
 };
 static const uint32_t CLAWD_DEAD_ROW1 = 0b000111111111111000;   // eyes filled solid
 
-static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool dead) {
-    // Terminal quadrant cells are ~twice as tall as wide; square cells squash him.
-    int ch = s * 2;
+// Bitmap columns of Clawd's two eyes (the row-1 gaps) — used by both blink ticks.
+static const int CLAWD_EYE_COLS[2] = {5, 12};
+
+// Left edge (in px from the mascot's x) of bitmap column c when Clawd is W px
+// wide. Rounding to nearest lets W be a non-multiple of 18 (fractional cell
+// widths) while keeping the edges symmetric, so both eyes render the same width.
+static inline int mascotEdge(int c, int W) { return (c * W + 9) / 18; }
+
+// W = total width; rh = row height, ~2x the cell width (W/18) — terminal quadrant
+// cells are about twice as tall as wide, and square cells squash him.
+static void drawMascot(TFT_eSPI& g, int x, int y, int W, int rh, uint16_t color, bool dead) {
     for (int r = 0; r < 5; r++) {
         uint32_t row = (dead && r == 1) ? CLAWD_DEAD_ROW1 : CLAWD_ROWS[r];
         for (int c = 0; c < 18; c++)
             if (row & (1UL << (17 - c)))
-                g.fillRect(x + c * s, y + r * ch, s, ch, color);
+                g.fillRect(x + mascotEdge(c, W), y + r * rh,
+                           mascotEdge(c + 1, W) - mascotEdge(c, W), rh, color);
     }
     if (dead) {
-        static const int eyeCols[2] = {5, 12};
         for (int e = 0; e < 2; e++) {
-            int cx = x + eyeCols[e] * s + s / 2;
-            int cy = y + ch + ch / 2;
+            int cx = x + (mascotEdge(CLAWD_EYE_COLS[e], W) +
+                          mascotEdge(CLAWD_EYE_COLS[e] + 1, W)) / 2;
+            int cy = y + rh + rh / 2;
             g.drawLine(cx - 3, cy - 4, cx + 3, cy + 4, C_BG);
             g.drawLine(cx - 2, cy - 4, cx + 4, cy + 4, C_BG);
             g.drawLine(cx + 3, cy - 4, cx - 3, cy + 4, C_BG);
@@ -427,9 +436,6 @@ static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool de
         }
     }
 }
-
-// Bitmap columns of Clawd's two eyes (the row-1 gaps) — used by both blink ticks.
-static const int CLAWD_EYE_COLS[2] = {5, 12};
 
 // ── Model-health panel ──────────────────────────────────────────────────────
 // The space below the bars differs by screen size:
@@ -459,15 +465,16 @@ static void drawModelsDivider(TFT_eSPI& g, int capY, int lineY) {
 // the four mascots — each named, each blinking when healthy — fill what's left.
 #define RESET_CAP_Y     80
 #define RESET_VAL_Y     92
-#define MASCOT_S        3                 // cell width (height is 2x)
-#define MASCOT_Y        126
+#define MASCOT_W        44                // fractional ~2.4px cells via mascotEdge
+#define MASCOT_RH       5                 // row height → 25px tall
+#define MASCOT_Y        128
 #define MASCOT_SPACING  80
 #define MASCOT_CX0      40
 #define MASCOT_NAME_Y   160
 #define MODELS_CAP_Y    112
 #define MODELS_LINE_Y   116
 #define MASCOT_CX(i) (MASCOT_CX0 + (i) * MASCOT_SPACING)
-#define MASCOT_X(i)  (MASCOT_CX(i) - 18 * MASCOT_S / 2)
+#define MASCOT_X(i)  (MASCOT_CX(i) - MASCOT_W / 2)
 
 // Size-2 countdown values — padded, opaque print overwrites in place so the
 // 10s clock tick can repaint them without clearing first.
@@ -501,7 +508,7 @@ static void drawStatusPanel(TFT_eSPI& g) {
         // status-page outage is never mistaken for a model outage.
         bool dead = s_modelStatus.ok && !up[i];
         uint16_t col = (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD;
-        drawMascot(g, MASCOT_X(i), MASCOT_Y, MASCOT_S, col, dead);
+        drawMascot(g, MASCOT_X(i), MASCOT_Y, MASCOT_W, MASCOT_RH, col, dead);
         g.setTextColor(C_DIM, C_BG);
         g.setTextSize(1);
         g.setCursor(cx - (int)strlen(names[i]) * 3, MASCOT_NAME_Y);
@@ -514,17 +521,18 @@ static void drawStatusPanel(TFT_eSPI& g) {
 void uiBlinkTick(bool closed) {
     bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
                   s_modelStatus.opusUp,  s_modelStatus.fableUp};
-    int ch = MASCOT_S * 2;
-    int ey = MASCOT_Y + ch;   // eye row 1
+    int ey = MASCOT_Y + MASCOT_RH;   // eye row 1
     for (int i = 0; i < 4; i++) {
         if (!s_modelStatus.ok || !up[i]) continue;   // dead/unknown don't blink
         for (int e = 0; e < 2; e++) {
-            int ex = MASCOT_X(i) + CLAWD_EYE_COLS[e] * MASCOT_S;
+            int ex = MASCOT_X(i) + mascotEdge(CLAWD_EYE_COLS[e], MASCOT_W);
+            int ew = mascotEdge(CLAWD_EYE_COLS[e] + 1, MASCOT_W) -
+                     mascotEdge(CLAWD_EYE_COLS[e], MASCOT_W);
             if (closed) {
-                lcd.fillRect(ex, ey, MASCOT_S, ch, C_HEAD);          // lid down
-                lcd.fillRect(ex, ey + ch / 2 - 1, MASCOT_S, 2, C_BG); // shut line
+                lcd.fillRect(ex, ey, ew, MASCOT_RH, C_HEAD);                  // lid down
+                lcd.fillRect(ex, ey + MASCOT_RH / 2 - 1, ew, 2, C_BG);        // shut line
             } else {
-                lcd.fillRect(ex, ey, MASCOT_S, ch, C_BG);            // eye open
+                lcd.fillRect(ex, ey, ew, MASCOT_RH, C_BG);                    // eye open
             }
         }
     }
@@ -553,7 +561,7 @@ static void drawStatusPanel(TFT_eSPI& g) {
     bool anyDown = false;
     for (int i = 0; i < 4; i++) anyDown = anyDown || !up[i];
     bool dead = s_modelStatus.ok && anyDown;
-    drawMascot(g, PANEL_MASCOT_X, PANEL_MASCOT_Y, PANEL_MASCOT_S,
+    drawMascot(g, PANEL_MASCOT_X, PANEL_MASCOT_Y, 18 * PANEL_MASCOT_S, PANEL_MASCOT_S * 2,
                (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD, dead);
 
     const int colX[2] = {PANEL_COL0_X, PANEL_COL1_X};
