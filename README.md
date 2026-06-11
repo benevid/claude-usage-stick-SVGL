@@ -159,7 +159,7 @@ pio run -e esp32c3-oled -t uploadfs
    - **LCD boards** — the password is shown on the device screen
    - **ESP32-C3-OLED** — a simple 8-digit password is shown on the OLED (`Pass:` line)
 3. Open `http://192.168.4.1` in a browser
-4. Fill in your WiFi credentials, OAuth token, and a 4–8 digit encryption PIN
+4. Fill in your WiFi credentials, OAuth token, and a 4-digit encryption PIN
 5. Hit **Save & Reboot** — the device encrypts the token, stores it, and connects to your WiFi
 
 ### Daily use

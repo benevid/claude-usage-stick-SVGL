@@ -48,6 +48,8 @@
 #define MESSAGES_ENDPOINT       "https://api.anthropic.com/v1/messages"
 #define ANTHROPIC_VERSION       "2023-06-01"
 #define PROBE_MODEL             "claude-haiku-4-5-20251001"
+// status.anthropic.com redirects here — query the canonical host directly
+#define STATUS_ENDPOINT         "https://status.claude.com/api/v2/incidents/unresolved.json"
 
 // ── NVS ──────────────────────────────────────────────────
 #define NVS_NAMESPACE           "claude"

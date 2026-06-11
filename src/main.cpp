@@ -20,10 +20,16 @@
 #include "provision.h"
 #include "api.h"
 #include "ui.h"
+#ifdef BOARD_TDISPLAY_S3
+#include "status.h"
+#endif
 
 static Preferences prefs;
 static char        token[256];
 static UsageData   usage;
+#ifdef BOARD_TDISPLAY_S3
+static ModelStatus modelStatus = {true, true, true, true, false};
+#endif
 static unsigned long lastFetch = 0;
 static int         pollMs     = DEFAULT_POLL_SEC * 1000;
 static uint8_t     brightness = DEFAULT_BRIGHTNESS;
@@ -75,6 +81,10 @@ static void refresh() {
         prefs.end();
     }
     fetchUsage(token, usage);
+#ifdef BOARD_TDISPLAY_S3
+    fetchModelStatus(modelStatus);   // failure keeps last-known state
+    uiSetModelStatus(modelStatus);
+#endif
     lastFetch = millis();
     uiDashboard(usage, lastFetch, WiFi.RSSI(), halBatPercent());
 }
@@ -203,6 +213,18 @@ void setup() {
 void loop() {
     halUpdate();
 
+#ifdef BOARD_TDISPLAY_S3
+    // A flips the screen 180°, B cycles brightness. Refresh stays automatic.
+    if (halBtnAWasPressed()) {
+        uiToggleRotation();
+        uiDashboard(usage, lastFetch, WiFi.RSSI(), halBatPercent());
+    }
+
+    if (halBtnBWasPressed()) {
+        brightness = (brightness + 1) % 4;
+        halSetBrightness(brightness);
+    }
+#else
     if (halBtnAWasPressed()) {
 #ifdef BOARD_ESP32C3_OLED
         brightness = (brightness + 1) % 2; // on/off only — contrast change imperceptible
@@ -215,10 +237,25 @@ void loop() {
     if (halBtnBWasPressed()) {
         refresh();
     }
+#endif
 
     if (millis() - lastFetch >= (unsigned long)pollMs) {
         refresh();
     }
+
+#ifdef BOARD_TDISPLAY_S3
+    // Healthy mascots blink every 2s (eyes shut for 150ms) to show liveness.
+    static unsigned long lastBlink = 0;
+    static bool eyesClosed = false;
+    if (eyesClosed && millis() - lastBlink > 150) {
+        uiBlinkTick(false);
+        eyesClosed = false;
+    } else if (!eyesClosed && usage.ok && millis() - lastBlink > 2000) {
+        uiBlinkTick(true);
+        eyesClosed = true;
+        lastBlink = millis();
+    }
+#endif
 
     static unsigned long lastRedraw = 0;
     if (millis() - lastRedraw > 10000) {

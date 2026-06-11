@@ -80,9 +80,9 @@ static const char SETUP_HTML[] PROGMEM = R"rawhtml(<!DOCTYPE html>
     <div class="field">
       <label for="pin">Encryption PIN</label>
       <input id="pin" name="pin" type="password" required class="pin-input"
-             pattern="\d{4,8}" minlength="4" maxlength="8" inputmode="numeric"
+             pattern="\d{4}" minlength="4" maxlength="4" inputmode="numeric"
              autocomplete="off" placeholder="····">
-      <div class="hint">4-8 digits. You'll enter this on device buttons at each boot.</div>
+      <div class="hint">Exactly 4 digits. You'll enter this on device buttons at each boot.</div>
       <div class="warn">PIN is never stored anywhere. Forget it = factory reset.</div>
     </div>
 
@@ -150,8 +150,12 @@ static void handleProvision() {
     String brightStr  = webServer.arg("brightness");
     String nameStr    = webServer.arg("device_name");
 
-    if (ssid.isEmpty() || token.isEmpty() || pin.length() < 4) {
-        webServer.send(400, "text/plain", "Missing required fields.");
+    // Device-side PIN entry is exactly 4 digits (enterPin in main.cpp) — anything
+    // else would encrypt a token that can never be unlocked.
+    bool pinOk = pin.length() == 4;
+    for (size_t i = 0; pinOk && i < 4; i++) pinOk = isDigit(pin[i]);
+    if (ssid.isEmpty() || token.isEmpty() || !pinOk) {
+        webServer.send(400, "text/plain", "Missing fields, or PIN is not exactly 4 digits.");
         return;
     }
 

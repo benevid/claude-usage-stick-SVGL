@@ -353,6 +353,136 @@ static void drawBar(GFX& g, int x, int y, int w, int h, float pct, const char* l
     if (fw > 0) g.fillRect(x, by, fw, h, barColor(pct));
 }
 
+#ifdef BOARD_TDISPLAY_S3
+static ModelStatus s_modelStatus = {true, true, true, true, false};
+
+void uiSetModelStatus(const ModelStatus& s) {
+    s_modelStatus = s;
+}
+
+void uiToggleRotation() {
+    static bool flipped = false;
+    flipped = !flipped;
+    lcd.setRotation(flipped ? 3 : SCREEN_ROT);   // 1 and 3 are the two landscapes
+    halClear(C_BG);
+}
+
+// Clawd, 18x5 px (MSB = leftmost column). The row-1 gaps at cols 5/12 are the eyes.
+static const uint32_t CLAWD_ROWS[5] = {
+    0b000111111111111000,
+    0b000110111111011000,
+    0b011111111111111110,
+    0b000111111111111000,
+    0b000010100001010000,
+};
+static const uint32_t CLAWD_DEAD_ROW1 = 0b000111111111111000;   // eyes filled solid
+
+static void drawMascot(TFT_eSPI& g, int x, int y, int s, uint16_t color, bool dead) {
+    // Terminal quadrant cells are ~twice as tall as wide; square cells squash him.
+    int ch = s * 2;
+    for (int r = 0; r < 5; r++) {
+        uint32_t row = (dead && r == 1) ? CLAWD_DEAD_ROW1 : CLAWD_ROWS[r];
+        for (int c = 0; c < 18; c++)
+            if (row & (1UL << (17 - c)))
+                g.fillRect(x + c * s, y + r * ch, s, ch, color);
+    }
+    if (dead) {
+        static const int eyeCols[2] = {5, 12};
+        for (int e = 0; e < 2; e++) {
+            int cx = x + eyeCols[e] * s + s / 2;
+            int cy = y + ch + ch / 2;
+            g.drawLine(cx - 3, cy - 4, cx + 3, cy + 4, C_BG);
+            g.drawLine(cx - 2, cy - 4, cx + 4, cy + 4, C_BG);
+            g.drawLine(cx + 3, cy - 4, cx - 3, cy + 4, C_BG);
+            g.drawLine(cx + 4, cy - 4, cx - 2, cy + 4, C_BG);
+        }
+    }
+}
+
+// Mascot row geometry, shared by the full draw and the blink tick.
+#define MASCOT_S    3                    // cell width (height is 2x)
+#define MASCOT_Y    120
+#define MASCOT_X(i) (40 + (i) * 80 - 27)
+static const int CLAWD_EYE_COLS[2] = {5, 12};
+
+static void drawMascotRow(TFT_eSPI& g) {
+    static const char* names[4] = {"HAIKU", "SONNET", "OPUS", "FABLE"};
+    bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
+                  s_modelStatus.opusUp,  s_modelStatus.fableUp};
+    for (int i = 0; i < 4; i++) {
+        int cx = 40 + i * 80;
+        // Unknown (status never fetched) renders gray without X eyes, so a
+        // status-page outage is never mistaken for a model outage.
+        bool dead = s_modelStatus.ok && !up[i];
+        uint16_t col = (!s_modelStatus.ok || dead) ? C_DIM : C_HEAD;
+        drawMascot(g, MASCOT_X(i), MASCOT_Y, MASCOT_S, col, dead);
+        g.setTextColor(C_DIM, C_BG);
+        g.setTextSize(1);
+        g.setCursor(cx - (int)strlen(names[i]) * 3, 154);
+        g.print(names[i]);
+    }
+}
+
+// Repaint only the eye cells of the healthy mascots — 18px per eye, drawn
+// straight to the panel, so the 2s "I'm alive" blink costs no full redraw.
+void uiBlinkTick(bool closed) {
+    bool up[4] = {s_modelStatus.haikuUp, s_modelStatus.sonnetUp,
+                  s_modelStatus.opusUp,  s_modelStatus.fableUp};
+    int ch = MASCOT_S * 2;
+    int ey = MASCOT_Y + ch;   // eye row 1
+    for (int i = 0; i < 4; i++) {
+        if (!s_modelStatus.ok || !up[i]) continue;   // dead/unknown don't blink
+        for (int e = 0; e < 2; e++) {
+            int ex = MASCOT_X(i) + CLAWD_EYE_COLS[e] * MASCOT_S;
+            if (closed) {
+                lcd.fillRect(ex, ey, MASCOT_S, ch, C_HEAD);          // lid down
+                lcd.fillRect(ex, ey + ch / 2 - 1, MASCOT_S, 2, C_BG); // shut line
+            } else {
+                lcd.fillRect(ex, ey, MASCOT_S, ch, C_BG);            // eye open
+            }
+        }
+    }
+}
+
+#define C_HEAD_DK 0xA244   // dimmed Claude orange — empty wifi bars on the header
+
+static void drawWifiIcon(TFT_eSPI& g, int x, int rssi) {
+    int level = (rssi >= -55) ? 4 : (rssi >= -65) ? 3 : (rssi >= -75) ? 2 : (rssi >= -85) ? 1 : 0;
+    for (int i = 0; i < 4; i++) {
+        int h = 3 * (i + 1);
+        g.fillRect(x + i * 4, 14 - h, 3, h, (level > i) ? C_TEXT : C_HEAD_DK);
+    }
+}
+
+// Right side of the header, anchored to the right edge: [ago] [wifi] [battery+pct].
+// Repainted whole by uiDashboardClock every 10s, so everything here must be
+// derivable from its arguments.
+static void drawHeaderRight(TFT_eSPI& g, int rssi, unsigned long ago, int batPct) {
+    g.setTextColor(C_TEXT, C_HEAD);
+    g.setTextSize(1);
+
+    char ps[8];
+    snprintf(ps, sizeof(ps), "%d%%", batPct);
+    int x = SCREEN_W - 4 - (int)strlen(ps) * 6;
+    g.setCursor(x, 5);
+    g.print(ps);
+
+    x -= 24;   // battery: 18 body + 2 nub + 4 gap before the text
+    g.drawRect(x, 4, 18, 10, C_TEXT);
+    g.fillRect(x + 18, 7, 2, 4, C_TEXT);
+    int fw = 14 * constrain(batPct, 0, 100) / 100;
+    if (fw > 0) g.fillRect(x + 2, 6, fw, 6, C_TEXT);
+
+    x -= 21;   // wifi: 15 wide + 6 gap
+    drawWifiIcon(g, x, rssi);
+
+    char as[12];
+    snprintf(as, sizeof(as), "%lus", ago);
+    g.setCursor(x - 6 - (int)strlen(as) * 6, 5);
+    g.print(as);
+}
+#endif // BOARD_TDISPLAY_S3
+
 void uiInit() {
     lcd.setRotation(SCREEN_ROT);
     halClear(C_BG);
@@ -433,14 +563,32 @@ void uiPinScreen(int pos, const int digits[4]) {
     halClear(C_BG);
 #endif
 
+#ifdef BOARD_TDISPLAY_S3
+    // Same dress code as the dashboard: orange header band + Clawd standing guard.
+    g.fillRect(0, 0, SCREEN_W, 18, C_HEAD);
+    g.setTextColor(C_TEXT, C_HEAD);
+    g.setTextSize(1);
+    g.setCursor(4, 5);
+    g.print("CLAUDE USAGE");
+    g.setCursor(SCREEN_W - 4 - 6 * 6, 5);
+    g.print("LOCKED");
+    g.setTextColor(C_DIM, C_BG);
+    g.setCursor((SCREEN_W - 10 * 6) / 2, 49);
+    g.print("UNLOCK PIN");
+#else
     g.setTextColor(C_DIM, C_BG);
     g.setTextSize(TS(1));
     g.setCursor(SX(70), SY(15));
     g.print("UNLOCK PIN");
+#endif
 
     int boxW = SX(30), boxH = SY(36), gap = SX(12);
     int startX = (SCREEN_W - (4 * boxW + 3 * gap)) / 2;
+#ifdef BOARD_TDISPLAY_S3
+    int boxY = (SCREEN_H - boxH) / 2;   // dead-center of the screen
+#else
     int boxY = SY(40);
+#endif
 
     for (int i = 0; i < 4; i++) {
         int x = startX + i * (boxW + gap);
@@ -461,9 +609,14 @@ void uiPinScreen(int pos, const int digits[4]) {
         }
     }
 
+#ifdef BOARD_TDISPLAY_S3
+    const int hintY = 115;   // below the centered boxes (67..103)
+#else
+    const int hintY = SY(95);
+#endif
     g.setTextColor(C_DIM, C_BG);
     g.setTextSize(TS(1));
-    g.setCursor(SX(20), SY(95));
+    g.setCursor(SX(20), hintY);
 #ifdef BOARD_T8_S2
     // Single BOOT button: short tap cycles the digit, long press confirms.
     g.print("[tap] cycle digit");
@@ -494,13 +647,24 @@ void uiPinScreen(int pos, const int digits[4]) {
                       (uint16_t*)s_dash.getPointer() + (size_t)bandY * SCREEN_W);
     }
 #else
+#ifdef BOARD_TDISPLAY_S3
+    static const char* hint = "[A] cycle digit   [B] confirm";
+    g.setCursor((SCREEN_W - (int)strlen(hint) * 6) / 2, hintY);
+    g.print(hint);
+
+    static const char* note = "Hold A+B on boot = factory reset";
+    g.setTextColor(0x4A49, C_BG);
+    g.setCursor((SCREEN_W - (int)strlen(note) * 6) / 2, 135);
+    g.print(note);
+#else
     g.print("[A] cycle digit");
-    g.setCursor(SX(148), SY(95));
+    g.setCursor(SX(148), hintY);
     g.print("[B] confirm");
 
     g.setCursor(SX(35), SY(118));
     g.setTextColor(0x4A49, C_BG);
     g.print("Hold A+B on boot = factory reset");
+#endif
     halFlush();
 #endif
 }
@@ -543,10 +707,14 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
     g.print("CLAUDE USAGE");
 
     unsigned long ago = (millis() - lastFetchMs) / 1000;
+#ifdef BOARD_TDISPLAY_S3
+    drawHeaderRight(g, rssi, ago, batPct);
+#else
     char hdr[32];
     snprintf(hdr, sizeof(hdr), "%ddBm %lus", rssi, ago);
     g.setCursor(SCREEN_W - strlen(hdr) * TS(6) - SX(4), SY(5));
     g.print(hdr);
+#endif
 
     if (!data.ok) {
         g.setTextColor(C_CRIT, C_BG);
@@ -558,7 +726,11 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
         g.setCursor(SX(10), SY(60));
         g.print(data.error);
         g.setCursor(SX(10), SY(80));
+#ifdef BOARD_TDISPLAY_S3
+        g.print("retrying automatically...");   // B is brightness on this board
+#else
         g.print("[B] retry now");
+#endif
         UI_PUSH_DASH();
         return;
     }
@@ -589,10 +761,14 @@ void uiDashboard(const UsageData& data, unsigned long lastFetchMs, int rssi, int
     g.setCursor(SCREEN_W / 2 + SX(10), SY(92));
     g.printf("%-8s", d7rst);
 
+#ifdef BOARD_TDISPLAY_S3
+    drawMascotRow(g);
+#else
     g.setTextColor(C_DIM, C_BG);
     g.setTextSize(TS(1));
     g.setCursor(SCREEN_W - SX(48), SY(120));
     g.printf("BAT %d%%", batPct);
+#endif
     UI_PUSH_DASH();
 }
 
@@ -606,13 +782,17 @@ void uiDashboardClock(const UsageData& data, unsigned long lastFetchMs, int rssi
 
     // Header "rssi / ago": repaint the header band over its own colour.
     unsigned long ago = (millis() - lastFetchMs) / 1000;
-    char hdr[32];
-    snprintf(hdr, sizeof(hdr), "%ddBm %lus", rssi, ago);
     g.fillRect(SCREEN_W / 2, 0, SCREEN_W / 2, SY(18), C_HEAD);
     g.setTextColor(C_TEXT, C_HEAD);
     g.setTextSize(TS(1));
+#ifdef BOARD_TDISPLAY_S3
+    drawHeaderRight(g, rssi, ago, halBatPercent());
+#else
+    char hdr[32];
+    snprintf(hdr, sizeof(hdr), "%ddBm %lus", rssi, ago);
     g.setCursor(SCREEN_W - strlen(hdr) * TS(6) - SX(4), SY(5));
     g.print(hdr);
+#endif
 
     // Reset countdowns: padded, opaque print overwrites in place.
     char h5rst[16], d7rst[16];
