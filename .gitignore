@@ -1,4 +1,25 @@
-.pio/
+# ───────── Segredos — NUNCA commitar ─────────
+# .env: token OAuth do Claude
+# .mcp.json: contém chave da OpenAI no ambiente do autor
+.env
+.env.*
+.mcp.json
+secrets.h
+*.token
+
+# ───────── Config local de ferramentas ─────────
+# .claude/: config/skills locais do Claude Code (não faz parte do projeto)
+.claude/
 .vscode/
-upload_data.py
+.idea/
+
+# ───────── Build / artefatos ─────────
+firmware/*/build/
+.pio/
+*.bin
+*.elf
+*.hex
+
+# ───────── SO ─────────
 .DS_Store
+Thumbs.db

@@ -1,183 +1,271 @@
-<div align="center">
+# Claude Usage Stick — touch screen (ESP32-S3 + LVGL)
 
-# Claude Usage Stick
+A desk gadget that shows your **Claude Code rate-limit usage** in real time on a 3.5" touch
+screen. No computer, no app, no cloud: the device queries Anthropic's API directly, reads usage
+straight from the response headers, and renders it all on a friendly dashboard — with animated
+**Clawd** mascots, a usage trend chart, an hour-of-day heatmap and reset clocks.
 
-**Your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) rate limits, glanceable on a tiny ESP32 stick.**
+<p align="center">
+  <img src="assets/screen-overview.jpeg" width="520" alt="Claude Usage Stick overview screen">
+</p>
 
-[![Firmware](https://img.shields.io/badge/firmware-🥭_Mango_(v2)-D97757?style=flat-square)](#-the-ui)
-[![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP32_·_S2_·_S3_·_C3-FF7F00?style=flat-square&logo=platformio&logoColor=white)](https://platformio.org/)
-[![Framework](https://img.shields.io/badge/framework-Arduino-00979D?style=flat-square&logo=arduino&logoColor=white)](https://www.arduino.cc/)
-[![Boards](https://img.shields.io/badge/boards-8_supported-44cc11?style=flat-square)](#%EF%B8%8F-supported-hardware)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](#-license)
-[![PRs](https://img.shields.io/badge/PRs-welcome-D97757?style=flat-square)](https://github.com/oauramos/claude-usage-stick/pulls)
+> 100% touch navigation (swipe ← → between screens, no physical button). Adapted from the original
+> **Claude Usage Stick** project (a multi-board firmware with physical buttons) to run **on this
+> screen only** — see [What came from the original project](#what-came-from-the-original-project).
 
-<img src="https://github.com/user-attachments/assets/c51c5a9e-5a3e-4c3e-97a8-d5a4c5a44263" width="720" alt="Claude Usage Stick — PIN unlock screen and usage dashboard on a LilyGo T-Display S3"/>
-
-
-*5-hour & 7-day usage windows · reset countdowns · model health mascots · PIN-encrypted token*
-
-</div>
+> The on-screen UI is in Portuguese (the author's language). This README documents it in English;
+> screenshot labels are referenced where useful.
 
 ---
 
-A standalone desk gadget that polls the Anthropic API and shows your Claude Code rate-limit usage in real time — no computer, no app, no cloud. Flash it, connect it to WiFi from your phone, and it just sits there telling you how much runway you have left.
+## Screens
 
-## ✨ Features
+Navigate by **swiping** (the dots at the bottom show your position; the active one becomes a
+pill). The **gear** opens Settings. The thin **coral bar** below the header counts down to the
+next refresh — tapping it refreshes immediately.
 
-- **Live usage bars** for the 5-hour and 7-day rate-limit windows
-- **Reset countdowns** so you know when capacity frees up
-- **Model status** *(Mango)* — Haiku / Sonnet / Opus / Fable health from [status.claude.com](https://status.claude.com), shown as blinking Clawd mascots; a downed model turns gray with X eyes
-- **PIN-protected** — your OAuth token is AES-256-GCM encrypted on-device; the PIN is never stored
-- **Captive-portal setup** — connect your phone to the device's WiFi AP and configure everything in a browser
-- **Battery & signal** shown on the dashboard
-- **Button controls** — brightness, screen flip, force refresh, factory reset
+### 1. Overview (*Resumo*)
+<img src="assets/screen-overview.jpeg" width="460" align="right" alt="Overview">
 
-## 🖥️ Supported hardware
+- **Overall status chip** (`allowed` / `allowed_warning` / `rejected`), color-coded.
+- **5-hour card** and **7-day card**: large percentage colored by threshold
+  (green < 70 % · amber < 90 % · red ≥ 90 %), a progress bar and a live *"resets in …"*.
+- **Row of Clawd mascots** (Haiku / Sonnet / Opus / Fable): coral = online (they blink and gently
+  bob), gray/translucent = offline.
+<br clear="right">
 
-Each board has its own spec page with pinouts, controls, and quirks — click the name.
+### 2. Reset clocks (*Reset*)
+<img src="assets/screen-reset.jpeg" width="460" align="right" alt="Reset clocks">
 
-| Board | MCU | Display | Firmware | PlatformIO env | Buy |
-| ----- | --- | ------- | -------- | -------------- | --- |
-| [M5StickC Plus](docs/m5stick-cplus.md) | ESP32-PICO | 1.14" 240×135 LCD | 🥭 **Mango (v2)** · tier S | `m5stick-cplus` | [AliExpress](https://s.click.aliexpress.com/e/_c3w3hHWl) |
-| [M5StickC Plus2](docs/m5stick-cplus2.md) | ESP32-PICO-V3-02 | 1.14" 240×135 LCD | Clarity (v1) | `m5stick-cplus2` | [AliExpress](https://s.click.aliexpress.com/e/_c3jkKlNj) |
-| [LilyGo T-Display S3](docs/tdisplay-s3.md) | ESP32-S3 | 1.9" 320×170 LCD | 🥭 **Mango (v2.1.1)** · tier L | `tdisplay-s3` | [AliExpress](https://s.click.aliexpress.com/e/_c4rvB1Mv) |
-| [LilyGo T8 ESP32-S2](docs/t8-s2.md) | ESP32-S2 | 1.14" 135×240 LCD | Clarity (v1) | `t8-s2` | [AliExpress](https://s.click.aliexpress.com/e/_c2w1HnpJ) |
-| [Elecrow CrowPanel Advance 3.5"](docs/crowpanel-adv-35.md) | ESP32-S3 | 3.5" 480×320 IPS touch | Clarity (v1) | `crowpanel-adv-35` | [AliExpress](https://s.click.aliexpress.com/e/_c4lDErmN) |
-| [LilyGo T-Display S3 AMOLED 1.91"](docs/tdisplay-s3-amoled.md) | ESP32-S3 | 1.91" 240×536 AMOLED | Clarity (v1) | `tdisplay-s3-amoled` | [AliExpress](https://s.click.aliexpress.com/e/_c3XNB9Hx) |
-| [TTGO T-Display ESP32](docs/tdisplay-esp32.md) | ESP32 | 1.14" 135×240 LCD | Clarity (v1) | `tdisplay-esp32` | [AliExpress](https://s.click.aliexpress.com/e/_c32HlGQ1) |
-| [ESP32-C3-OLED](docs/esp32c3-oled.md) | ESP32-C3 | 0.42" 72×40 OLED | Clarity (v1) | `esp32c3-oled` | [AliExpress](https://s.click.aliexpress.com/e/_c3JMxywv) |
-| M5Stack StickS3 | — | — | 🚧 in progress | — | [AliExpress](https://s.click.aliexpress.com/e/_c3ZsWHBB) |
+- Two cards (5 h and 7 d windows) with a **large countdown** and the **local reset time**
+  (*"resets Mon 18:20"*) — respects the configured timezone.
+- A **status pill** per window.
+<br clear="right">
 
-Plus any USB-C cable for flashing and power.
+### 3. Models (*Modelos*)
+<img src="assets/screen-models.jpeg" width="460" align="right" alt="Models">
 
-## 🎨 The UI
+- The 4 mascots at large size, with **name** and **online/offline** state.
+- An **incident banner**: *"Active incident — see status.claude.com"* or *"All models OK"*, read
+  from `status.claude.com`. Handy to know whether the problem is you or Anthropic.
+<br clear="right">
 
-Firmware releases carry names. Each board's current version is listed in the table above.
+### 4. Trend (*Tendência*)
+<img src="assets/screen-trend.jpeg" width="460" align="right" alt="Trend">
 
-### Versions
+- A **line chart** of recent usage: 5 h (coral) and 7 d (green).
+- A **burn-rate** sentence in plain language: *"Usage stable right now"* or *"At the current
+  rate, the 5 h window fills in ~2h10m"*.
+<br clear="right">
 
-| Version | Name | Highlights |
-| ------- | ---- | ---------- |
-| v1 | **Clarity** | The original dashboard — usage bars, reset countdowns, PIN unlock, captive-portal setup |
-| v2 | 🥭 **Mango** | Everything in Clarity, plus model-status mascots, header icons, inline countdowns, and screen flip — see below |
+### 5. Heatmap
+<img src="assets/screen-heatmap.jpeg" width="460" align="right" alt="Heatmap">
 
-### Display tiers
+- **Usage by hour of day**: 24 bars (0 h–23 h) whose height and brightness show **which hours you
+  burn the most quota**. The current hour is highlighted.
+- Accumulates over days and is **persisted to flash** — great for planning big refactors right
+  after a reset.
+<br clear="right">
 
-The Mango dashboard keeps the same header and usage bars on every board, and adapts only its bottom **MODELS** section to the screen size. Each tier has a reference board; the layout scales to fit.
+### 6. Details (*Detalhes*)
+<img src="assets/screen-details.jpeg" width="460" align="right" alt="Details">
 
-| Tier | Class | Resolution | Reference board | MODELS section | Status |
-| ---- | ----- | ---------- | --------------- | -------------- | ------ |
-| **XS** | tiny OLED | ≤ 128×64 | ESP32-C3-OLED | — | ⏳ Pending |
-| **S** | small LCD | ~240×135 | **M5StickC Plus** | One overall-health Clawd + a 2×2 `NAME UP/DOWN` text grid | ✅ |
-| **L** | large LCD | ~320×170 | **LilyGo T-Display S3** | A row of four labelled Clawds (one per model), each blinking when healthy | ✅ |
-| **XL** | big / touch | ≥ 480×320 | CrowPanel 3.5", S3 AMOLED | — | ⏳ Pending |
+- Minimalist: **"The limit that will block you first"** → **5 HOURS** or **7 DAYS** (from the
+  `representative-claim` header), plus the **overage** state when relevant.
+<br clear="right">
 
-> Boards still on **Clarity (v1)** keep the original minimal dashboard until they're migrated to their tier.
+### Settings (*Ajustes*)
+<img src="assets/screen-settings.jpeg" width="460" align="right" alt="Settings">
 
-### What Mango adds
+Opened from the gear:
 
-- **Model status mascots** — Haiku / Sonnet / Opus / Fable health from the Claude status page; a downed model turns gray with X eyes, healthy ones blink
-- **Header icons** — battery level and WiFi signal strength as icons in the header bar
-- **Reset countdowns by tier** — tier S shows each reset time inline on its bar row; tier L (v2.1.1) gives the countdowns their own large-type row below the bars
-- **Dashboard-styled PIN screen** — the unlock screen matches the dashboard look
-- **Screen flip & brightness** — Button A flips the screen 180°, Button B cycles brightness; refresh happens automatically, or press **A+B** together to force one
+- **Refresh now** — forces a refresh.
+- **Refresh interval** — 30 s / 1 min / 2 min / 5 min (tap to cycle; saved to NVS).
+- **Timezone: GMT±N** — adjusts the timezone (tap to cycle; fixes the reset clocks).
+- **Configure WiFi** — re-scan + password on screen.
+- **Change token** — reopens the web token entry.
+- **Brightness** — low / medium / high (backlight PWM).
+- **Erase everything** — factory reset (2 taps to confirm).
+<br clear="right">
 
-## 🚀 Quick start
+---
 
-### Prerequisites
+## Hardware
 
-- [PlatformIO CLI](https://platformio.org/install/cli) installed
-- A supported board connected via USB-C
-- A Claude Code OAuth token (run `claude setup-token` in your terminal)
+| | |
+|---|---|
+| Screen | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://pt.aliexpress.com/item/1005007641039070.html)) |
+| Chip | ESP32-S3 (native USB) |
+| Display | **AXS15231B**, QSPI interface |
+| Touch | **AXS15231B** capacitive, I²C `0x3B` |
 
-### 1. Flash the firmware
+> **OPI PSRAM is mandatory** — the 480×320 LVGL buffer doesn't fit in internal RAM.
 
-Pick your board's env from the [hardware table](#%EF%B8%8F-supported-hardware), then:
+Pins and the validated display/color/touch configuration are in
+[`firmware/REFERENCIA-HARDWARE-LVGL.md`](firmware/REFERENCIA-HARDWARE-LVGL.md) and the reference
+bring-up sketch in [`firmware/bringup/`](firmware/bringup/).
+
+---
+
+## How it works (and the token)
+
+The gadget makes a **minimal** `POST` (`max_tokens: 1`) to
+`https://api.anthropic.com/v1/messages` and **doesn't use the response body** — it reads usage
+straight from the headers:
+
+```
+anthropic-ratelimit-unified-status                allowed | allowed_warning | rejected
+anthropic-ratelimit-unified-5h-utilization        0–1   (becomes the 5-hour window %)
+anthropic-ratelimit-unified-5h-reset              epoch
+anthropic-ratelimit-unified-7d-utilization        0–1   (7-day window)
+anthropic-ratelimit-unified-7d-reset              epoch
+anthropic-ratelimit-unified-representative-claim  five_hour | seven_day  (what limits you first)
+anthropic-ratelimit-unified-fallback-percentage
+anthropic-ratelimit-unified-overage-status / -overage-disabled-reason
+```
+
+Model health comes from `status.claude.com/api/v2/incidents/unresolved.json`.
+
+### Generating the token (`claude setup-token`)
+
+In a terminal, with **Claude Code** installed and logged into your subscription (**Pro** or
+**Max**):
 
 ```bash
-git clone https://github.com/oauramos/claude-usage-stick.git
-cd claude-usage-stick
-
-pio run -e <env> -t upload      # firmware
-pio run -e <env> -t uploadfs    # web setup UI (SPIFFS)
+claude setup-token
 ```
 
-> **Apple Silicon note:** If `uploadfs` fails with "Bad CPU type", install Rosetta (`softwareupdate --install-rosetta`) or use the included Python fallback:
-> ```bash
-> python3 upload_data.py
-> ```
+This opens an **OAuth** flow in the browser; you authenticate with your Anthropic account and
+receive a **long-lived token** in the form `sk-ant-oat01-…`.
 
-### 2. Configure the device
+It was designed for environments **without interactive login** (CI/CD, GitHub Actions, headless
+scripts) — the typical use is as an environment variable:
 
-1. On first boot (or after factory reset), the device creates a WiFi access point named `ClaudeMonitor-XXXX`
-2. Connect your phone or laptop to that network — the password is shown on the device screen
-3. Open `http://192.168.4.1` in a browser
-4. Fill in your WiFi credentials, OAuth token, and a 4-digit encryption PIN
-5. Hit **Save & Reboot** — the device encrypts the token, stores it, and connects to your WiFi
-
-### 3. Daily use
-
-On each boot, enter your PIN using the device buttons: **Button A** cycles the current digit (0–9), **Button B** confirms and moves to the next. Once unlocked, the dashboard appears and auto-refreshes.
-
-| Button | Clarity (v1) | 🥭 Mango (v2) |
-| ------ | ------------ | ------------- |
-| A | Cycle brightness | Flip screen 180° |
-| B | Force refresh | Cycle brightness |
-| A+B | — | Force refresh |
-| A+B held on boot | Factory reset | Factory reset |
-
-> Single-button and touch boards (T8-S2, CrowPanel, AMOLED, ESP32-C3-OLED) map these differently — see your [board's page](#%EF%B8%8F-supported-hardware).
-
-## ⚙️ How it works
-
-1. The device sends a minimal API request (`max_tokens: 1`) to the Anthropic Messages endpoint using your OAuth token
-2. It reads the `anthropic-ratelimit-unified-5h-utilization` and `anthropic-ratelimit-unified-7d-utilization` response headers
-3. The dashboard updates on a configurable interval (30s–5min)
-
-The token never leaves the device. It is encrypted with AES-256-GCM using a key derived from your PIN (PBKDF via iterated SHA-256, 10 000 rounds).
-
-## 🔐 Security
-
-- The OAuth token is encrypted with AES-256-GCM before being written to NVS flash
-- The encryption key is derived from your PIN + device MAC salt through 10 000 rounds of SHA-256
-- The PIN is **never stored** — wrong PIN = failed decryption (GCM tag mismatch)
-- After 10 failed PIN attempts, all credentials are wiped and the device resets to setup mode
-- Lockout delay doubles after each failure (60s → 120s → 240s → ...)
-
-## 🗂️ Project structure
-
-```
-assets/           — images (hero, gallery, wiring photos)
-docs/             — per-board hardware specs, flashing & controls
-src/
-  main.cpp        — boot flow, WiFi, PIN entry, main loop
-  hal.cpp/h       — hardware abstraction (display, buttons, battery, backlight)
-  api.cpp/h       — HTTPS request to Anthropic, header parsing
-  crypto.cpp/h    — AES-256-GCM encrypt/decrypt with PIN-derived key
-  provision.cpp/h — captive portal WiFi AP + web server
-  ui.cpp/h        — all LCD drawing (boot, PIN, dashboard, errors)
-  config.h        — tunables (poll interval, timeouts, PIN attempts)
-data/
-  setup.html      — web UI served during provisioning
-server/
-  usage_proxy.py  — optional local caching proxy (reads token from macOS Keychain)
-platformio.ini    — one build env per board
+```bash
+export CLAUDE_CODE_OAUTH_TOKEN="sk-ant-oat01-..."
 ```
 
-## 📸 Gallery
+**⚠️ Important caveat:** this is a **Claude Code** token. A "raw" call to the Messages API
+(`/v1/messages`) with it is usually **rejected**.
 
-Real builds in the wild. Got a Claude Usage Stick on your desk? PRs with photos are welcome!
+**How this gadget works around that:** it sends exactly the headers Claude Code sends —
+`anthropic-beta: oauth-2025-04-20` plus the Claude Code `User-Agent` — in a `max_tokens: 1`
+request. The API then responds **200** and returns the rate-limit headers (validated against a
+real account). Since the body is discarded and it's just 1 token, **quota consumption is
+negligible**.
 
-<p align="center">
-  <img src="assets/boot.jpg" width="260" alt="Boot screen">
-  <img src="assets/pin.jpg" width="260" alt="PIN unlock">
-  <img src="assets/dashboard.jpg" width="260" alt="Dashboard">
-</p>
+> The token is typed **once** (via the web, see below) and stored **encrypted** on the device.
 
-<p align="center">
-  <img src="assets/esp32-c3-oled.jpg" width="400" alt="ESP32-C3-OLED running Claude Usage Stick">
-</p>
+---
 
-## 📄 License
+## Build & flash
 
-MIT
+Prerequisites (tested versions):
+
+- `arduino-cli` 1.4.x · core `esp32:esp32` **3.3.8**
+- libraries: **GFX Library for Arduino** 1.6.5 · **lvgl** 9.2.2
+
+```bash
+cd firmware/claude_stick
+./build.sh                 # compile
+./build.sh upload          # compile + flash (default port /dev/cu.usbmodem101)
+./build.sh upload /dev/cu.usbmodemXXXX
+./build.sh monitor /dev/cu.usbmodemXXXX
+```
+
+FQBN: `esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,PartitionScheme=custom,CDCOnBoot=cdc,USBMode=hwcdc,FlashMode=qio`
+
+`build.sh` passes `-DLV_CONF_INCLUDE_SIMPLE -I<sketch>` so LVGL finds the sketch's `lv_conf.h`. If
+you get `lv_conf.h not found`, copy `firmware/claude_stick/lv_conf.h` into your Arduino libraries
+folder (one level above the `lvgl` folder).
+
+> If colors come out with red/blue swapped, flip `LV_COLOR_16_SWAP` to `1` in `lv_conf.h`.
+
+---
+
+## First-time setup (onboarding)
+
+Everything via the screen / network — no recompiling needed:
+
+1. **WiFi** — tap your network and type the password (on-screen keyboard). Stores up to 3 networks
+   in NVS.
+2. **Token** — the screen shows the **gadget's IP** (e.g. `http://192.168.0.42`) with an animated
+   Claude icon. Open that address **on your PC/phone on the same network** and **paste the token**
+   into the form. The device **validates** the token on the spot (a real API call) before
+   accepting it.
+3. **PIN** — set a 4-digit PIN (entered twice to confirm). The token is encrypted with it.
+
+On every subsequent boot, the device only asks for the **PIN** to decrypt the token.
+
+---
+
+## Security
+
+- The token is stored **encrypted** (AES-256-GCM; key derived from the PIN via SHA-256). The PIN
+  is **never** stored — a wrong PIN means the GCM tag fails to verify.
+- After 10 wrong attempts, the credentials are **wiped** and the device returns to onboarding
+  (each failure doubles the lockout time).
+- The history/heatmap lives in a **LittleFS** file (it does not contain the token).
+- `.env` and `.mcp.json` are in `.gitignore` — **no secrets go to git**.
+
+---
+
+## What came from the original project
+
+This is a fork of the **Claude Usage Stick** (a multi-board firmware with physical buttons). The
+**data mechanics were reused** and the entire **hardware/UI layer was rewritten** for this screen.
+
+**Reused from the original (adapted):**
+
+- The core idea of **reading usage from the** `anthropic-ratelimit-unified-*` **headers** with a
+  minimal `POST` (`firmware/claude_stick/api.cpp`).
+- The **model-health** fetch from `status.claude.com` (`status.cpp`).
+- The **token encryption** AES-256-GCM + PIN-derived key (`crypto.cpp`).
+- The **CA bundle** for HTTPS (`certs.cpp`).
+- The product concept and the **Clawd mascots** / model-status row.
+
+**Rewritten / new in this version:**
+
+- **LVGL 9 UI** for the touch screen (tileview with swipe + dots, cards, mascots with arms/legs,
+  chart, heatmap) — replacing the multi-board TFT_eSPI/U8g2.
+- **arduino-cli build** for the ESP32-S3 (replacing the multi-board PlatformIO setup).
+- **Touch navigation** instead of physical buttons.
+- **On-screen onboarding + web token entry** (local IP) instead of a captive portal.
+- **Full** header parsing (status, `representative-claim`, overage, fallback).
+- **Background refresh**, **persisted history/heatmap** (LittleFS), **configurable timezone**.
+
+---
+
+## Repository layout
+
+```
+firmware/
+  claude_stick/                 # the firmware (arduino-cli sketch)
+    claude_stick.ino            # setup/loop, state machine, dashboard, screens
+    api.cpp/.h                  # fetchUsage() — usage via API headers
+    status.cpp/.h               # fetchModelStatus() — model health
+    crypto.cpp/.h               # AES-256-GCM + PIN-derived key
+    certs.cpp/.h                # CA bundle for HTTPS
+    wifi_manager.h              # networks saved in NVS (up to 3)
+    touch.h                     # AXS15231B driver
+    config.h                    # pins + endpoints + constants
+    lv_conf.h                   # LVGL 9.2 config
+    partitions.csv              # 16 MB partition (app + nvs + LittleFS)
+    build.sh                    # compile / flash / monitor
+  bringup/                      # validated bring-up (hardware reference)
+  REFERENCIA-HARDWARE-LVGL.md   # display/colors/touch that work
+assets/                         # screen screenshots
+```
+
+## Where to tweak
+
+- **Poll interval, endpoints, PIN, timezone:** via the screen (Settings) or in `config.h`.
+- **Theme colors / layout:** top of `claude_stick.ino` (palette) and the `build_tile_*` builders.
+- **Mascots:** `build_mascot()` in `claude_stick.ino`.
+
+---
+
+## Credits
+
+Fork of the original **Claude Usage Stick**. This version's firmware was rewritten for the
+ESP32-S3 480×320 LVGL screen. Not an official Anthropic product.
