@@ -11,7 +11,13 @@
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
+/* Guarda obrigatória: lv_conf_internal.h inclui este arquivo também durante a
+   montagem dos .S do LVGL (ex.: draw/sw/blend/helium/lv_blend_helium.S). Sem a
+   guarda, o assembler recebe os typedef de stdint.h e falha com
+   "unknown opcode or format name 'typedef'". Ver o aviso no lv_conf_internal.h. */
+#ifndef __ASSEMBLY__
 #include <stdint.h>
+#endif
 
 /*====================
    COLOR
