@@ -70,6 +70,11 @@ private:
     }
 };
 
-AXS15231B_Touch *AXS15231B_Touch::_instance = nullptr;
+// `inline` obrigatorio: isto e uma DEFINICAO em escopo de arquivo dentro de um
+// header. Enquanto o projeto era um .ino unico, so havia uma unidade de traducao
+// e passava despercebido. Com o codigo dividido em varios .cpp, o segundo include
+// gera "multiple definition of AXS15231B_Touch::_instance" — erro de LINKAGEM,
+// que aparece no fim do build e aponta para o header, nao para quem incluiu.
+inline AXS15231B_Touch *AXS15231B_Touch::_instance = nullptr;
 
 #endif // TOUCH_H
