@@ -31,6 +31,7 @@
 #include "api.h"
 #include "status.h"
 #include "crypto.h"
+#include "accounts.h"
 #include "logo_assets.h"   // Clawd + logotipo oficiais (gerado por tools/gen_logo_assets.py)
 
 // ---- Paleta (escuro, minimalista; acento coral do Claude) ----
@@ -62,7 +63,7 @@ Preferences g_prefs;
 // ---- Estado da aplicação ----
 enum State {
   ST_BOOT, ST_PIN, ST_SETUP_PIN, ST_WIFI, ST_TOKEN,
-  ST_LOADING, ST_MAIN, ST_SETTINGS, ST_ABOUT, ST_ERROR
+  ST_LOADING, ST_MAIN, ST_SETTINGS, ST_ACCOUNTS, ST_ACCT_NAME, ST_ABOUT, ST_ERROR
 };
 static State g_state = ST_BOOT;
 static State g_pending = ST_BOOT;
@@ -90,11 +91,15 @@ static TokenStats g_tok = {0, 0, 0, 0, 0};
 #define TOK_FRESH_MS (15UL * 60UL * 1000UL)
 
 // ---- Token / segurança ----
+static AccountSlots g_accts;
 static EncryptedBlob g_blob;
-static bool g_hasToken = false;              // existe blob salvo no NVS
+static bool g_hasToken = false;              // existe conta salva no NVS
 static bool g_onboarding = false;            // primeiro setup em andamento
 static char g_token[200] = {0};              // token decifrado (só em RAM)
 static char g_pendingToken[200] = {0};       // token digitado, aguardando PIN
+static char g_sessionPin[PIN_LEN + 1] = {0};
+static int  g_tokenTargetSlot = 0;
+static char g_pendingLabel[ACCT_LBL_MAX] = {0};
 static char g_pinEntry[PIN_LEN + 1] = {0};   // dígitos sendo digitados
 static char g_pinFirst[PIN_LEN + 1] = {0};   // 1ª entrada no setup de PIN
 static bool g_pinConfirming = false;         // setup: confirmando 2ª vez
@@ -180,6 +185,8 @@ static void ui_token();
 static void ui_loading(const char *sub);
 static void ui_main();
 static void ui_settings();
+static void ui_accounts();
+static void ui_account_name();
 static void ui_message(const char *title, const char *sub, uint32_t color);
 static void nav_cb(lv_event_t *e);
 static void start_data_web();
@@ -305,9 +312,9 @@ static void fmt_tok(long long v, char *out, int sz) {
 // ============================================================
 static void load_persisted() {
   g_prefs.begin(NVS_NAMESPACE, false);
-  size_t n = g_prefs.getBytesLength("blob");
-  if (n == sizeof(EncryptedBlob)) {
-    g_prefs.getBytes("blob", &g_blob, sizeof(EncryptedBlob));
+  accountsLoad(g_prefs, g_accts);
+  if (g_accts.used[g_accts.active] &&
+      accountLoadBlob(g_prefs, g_accts.active, g_blob)) {
     g_hasToken = true;
   }
   g_pinAttempts = g_prefs.getInt("pinatt", 0);
@@ -324,13 +331,24 @@ static void load_persisted() {
   if (g_heatMode < 0 || g_heatMode > 3) g_heatMode = 3;
   g_lang = g_prefs.getInt("lang", 0) ? 1 : 0;
 }
-static void save_blob() { g_prefs.putBytes("blob", &g_blob, sizeof(EncryptedBlob)); }
 static void save_attempts() { g_prefs.putInt("pinatt", g_pinAttempts); }
 static void apply_brightness() { ledcWrite(TFT_BL, BRI_LEVELS[g_briIdx]); }
+
+static void reset_history_ram();
 
 static void factory_reset() {
   g_prefs.clear();              // apaga blob, pinatt, bri do namespace claude
   g_wifi.forgetAll();
+  for (int i = 0; i < ACCT_MAX; i++) {
+    char pth[16]; snprintf(pth, sizeof(pth), "/hist%d.bin", i);
+    LittleFS.remove(pth);
+  }
+  memset(&g_accts, 0, sizeof(g_accts));
+  memset(g_sessionPin, 0, sizeof(g_sessionPin));
+  g_pendingLabel[0] = 0;
+  g_tokenTargetSlot = 0;
+  reset_history_ram();
+  memset(&g_tok, 0, sizeof(g_tok));
   g_hasToken = false;
   g_token[0] = 0; g_pendingToken[0] = 0;
   g_pinAttempts = 0;
@@ -383,7 +401,10 @@ static void pin_submit() {
       g_pinConfirming = false; g_pinFirst[0] = 0; g_pinEntry[0] = 0; pin_update_dots();
       return;
     }
-    save_blob();
+    accountSave(g_prefs, g_accts, g_tokenTargetSlot, g_blob, g_pendingLabel);
+    accountSetActive(g_prefs, g_accts, g_tokenTargetSlot);
+    g_pendingLabel[0] = 0;
+    strlcpy(g_sessionPin, g_pinEntry, sizeof(g_sessionPin));
     strlcpy(g_token, g_pendingToken, sizeof(g_token));
     memset(g_pendingToken, 0, sizeof(g_pendingToken));
     g_hasToken = true; g_onboarding = false;
@@ -397,6 +418,7 @@ static void pin_submit() {
   // ST_PIN: tenta decifrar
   if (decryptToken(g_blob, g_pinEntry, g_token, sizeof(g_token))) {
     g_pinAttempts = 0; save_attempts();
+    strlcpy(g_sessionPin, g_pinEntry, sizeof(g_sessionPin));
     g_pinEntry[0] = 0;
     Serial.printf("[PIN] ok, token %d chars\n", (int)strlen(g_token));
     if (!g_wifi.isConnected()) g_wifi.autoConnect(WIFI_CONNECT_TIMEOUT_MS);
@@ -621,6 +643,8 @@ static lv_obj_t *build_claude_mark(lv_obj_t *parent) {
   "p{color:var(--mut);font-size:14px;line-height:1.5;margin:6px 0 14px}" \
   "textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;" \
   "padding:12px;font-family:ui-monospace,monospace;font-size:13px;min-height:96px;resize:vertical}" \
+  "input{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;" \
+  "padding:12px;font-size:14px;margin-bottom:10px}" \
   "button{margin-top:14px;width:100%;background:var(--cor);color:#1A1A20;border:0;border-radius:10px;" \
   "padding:14px;font-size:16px;font-weight:700;cursor:pointer}" \
   ".spark{width:26px;height:26px;flex:0 0 auto}code,a{color:var(--cor)}"
@@ -639,6 +663,7 @@ static String web_form() {
                "<p>Cole o seu token OAuth do Claude (<code>sk-ant-oat01-...</code>) e toque em <b>Salvar</b>. "
                "O gadget vai <b>validar</b> o token e pedir um PIN na tela.</p>"
                "<form method=POST action='/token'>"
+               "<input name=label maxlength=16 placeholder='rotulo da conta (ex.: Pessoal, Trabalho)' autocomplete=off>"
                "<textarea name=token placeholder='sk-ant-oat01-...' autocomplete=off autofocus></textarea>"
                "<button type=submit>Salvar e validar</button></form></div></body></html>");
   return h;
@@ -664,6 +689,9 @@ static void handleRoot()     { g_web->send(200, "text/html; charset=utf-8", web_
 static void handleNotFound() { g_web->sendHeader("Location", "/"); g_web->send(302, "text/plain", ""); }
 
 static void handleTokenPost() {
+  String lb = g_web->arg("label");
+  lb.trim();
+  strlcpy(g_pendingLabel, lb.c_str(), sizeof(g_pendingLabel));
   String t = g_web->arg("token");
   t.trim();
   if (t.length() < 8) {
@@ -697,17 +725,37 @@ static long long jll(const String &s, const char *key) {
   i = s.indexOf(':', i + k.length() - 1); if (i < 0) return 0;
   return atoll(s.c_str() + i + 1);
 }
+static bool jstr(const String &s, const char *key, char *out, size_t sz) {
+  String k = String("\"") + key + "\"";
+  int i = s.indexOf(k); if (i < 0) return false;
+  i = s.indexOf(':', i + k.length()); if (i < 0) return false;
+  i = s.indexOf('"', i); if (i < 0) return false;
+  int e = s.indexOf('"', i + 1); if (e < 0) return false;
+  strlcpy(out, s.substring(i + 1, e).c_str(), sz);
+  return true;
+}
 static void handleWindow() {
-  char b[192];
+  char b[256];
   snprintf(b, sizeof(b),
-           "{\"now\":%lu,\"h5_reset\":%lu,\"d7_reset\":%lu,\"h5_util\":%.4f,\"d7_util\":%.4f}",
+           "{\"now\":%lu,\"h5_reset\":%lu,\"d7_reset\":%lu,\"h5_util\":%.4f,\"d7_util\":%.4f,"
+           "\"account\":\"%s\",\"slot\":%d}",
            (unsigned long)time(nullptr),
            (unsigned long)g_usage.h5ResetEpoch, (unsigned long)g_usage.d7ResetEpoch,
-           g_usage.h5 / 100.0f, g_usage.d7 / 100.0f);
+           g_usage.h5 / 100.0f, g_usage.d7 / 100.0f,
+           g_accts.label[g_accts.active], g_accts.active);
   g_web->send(200, "application/json", b);
 }
 static void handleTokensPost() {
   String body = g_web->arg("plain");
+  char acct[ACCT_LBL_MAX];
+  if (jstr(body, "account", acct, sizeof(acct)) && acct[0] &&
+      strcmp(acct, g_accts.label[g_accts.active]) != 0) {
+    char r[96];
+    snprintf(r, sizeof(r), "{\"error\":\"account_mismatch\",\"active\":\"%s\"}",
+             g_accts.label[g_accts.active]);
+    g_web->send(409, "application/json", r);
+    return;
+  }
   g_tok.tin      = jll(body, "in");
   g_tok.tout     = jll(body, "out");
   g_tok.cache    = jll(body, "cache");
@@ -891,8 +939,20 @@ struct HistFileV2 {
   uint32_t magic; int n, head; Sample hist[HIST_MAX]; float hourBurn[24]; float lastH5;
   int dayN; DayHeat days[NDAYS];
 };
+static void hist_path(char *out, size_t sz) {
+  snprintf(out, sz, "/hist%d.bin", g_accts.active);
+}
+static void reset_history_ram() {
+  memset(g_hist, 0, sizeof(g_hist));
+  g_histN = 0; g_histHead = 0;
+  memset(g_hourBurn, 0, sizeof(g_hourBurn));
+  g_lastH5 = -1.0f;
+  memset(g_days, 0, sizeof(g_days));
+  g_dayN = 0;
+}
 static void save_history() {
-  File f = LittleFS.open("/hist.bin", "w");
+  char pth[16]; hist_path(pth, sizeof(pth));
+  File f = LittleFS.open(pth, "w");
   if (!f) return;
   static HistFileV2 hf;                       // grande demais p/ stack
   hf.magic = HIST_MAGIC_V2; hf.n = g_histN; hf.head = g_histHead;
@@ -905,7 +965,8 @@ static void save_history() {
   f.close();
 }
 static void load_history() {
-  File f = LittleFS.open("/hist.bin", "r");
+  char pth[16]; hist_path(pth, sizeof(pth));
+  File f = LittleFS.open(pth, "r");
   if (!f) return;
   uint32_t magic = 0;
   f.read((uint8_t *)&magic, sizeof(magic));
@@ -933,6 +994,60 @@ static void load_history() {
     }
   }
   f.close();
+}
+
+static bool switch_account(int slot) {
+  if (slot < 0 || slot >= ACCT_MAX || !g_accts.used[slot] || slot == g_accts.active)
+    return false;
+  EncryptedBlob b;
+  if (!accountLoadBlob(g_prefs, slot, b)) return false;
+  char tok[200];
+  if (!decryptToken(b, g_sessionPin, tok, sizeof(tok))) return false;
+
+  save_history();
+  accountSetActive(g_prefs, g_accts, slot);
+  g_blob = b;
+  strlcpy(g_token, tok, sizeof(g_token));
+  memset(tok, 0, sizeof(tok));
+  reset_history_ram();
+  load_history();
+  memset(&g_tok, 0, sizeof(g_tok));
+  memset(&g_usage, 0, sizeof(g_usage));
+  Serial.printf("[ACCT] conta ativa -> slot %d (%s)\n", slot, g_accts.label[slot]);
+  request_state(ST_LOADING);
+  return true;
+}
+
+static void finalize_pending_token() {
+  EncryptedBlob nb;
+  if (!encryptToken(g_pendingToken, g_sessionPin, nb)) {
+    memset(g_pendingToken, 0, sizeof(g_pendingToken));
+    request_state(ST_SETTINGS);
+    return;
+  }
+  bool replacing = g_accts.used[g_tokenTargetSlot];
+  bool switching = (g_tokenTargetSlot != g_accts.active);
+  if (switching) save_history();
+  const char *lbl = g_pendingLabel[0] ? g_pendingLabel
+                    : (replacing ? g_accts.label[g_tokenTargetSlot] : "");
+  accountSave(g_prefs, g_accts, g_tokenTargetSlot, nb, lbl);
+  if (switching) {
+    accountSetActive(g_prefs, g_accts, g_tokenTargetSlot);
+    reset_history_ram();
+    load_history();
+    memset(&g_tok, 0, sizeof(g_tok));
+  }
+  g_blob = nb;
+  strlcpy(g_token, g_pendingToken, sizeof(g_token));
+  memset(g_pendingToken, 0, sizeof(g_pendingToken));
+  g_pendingLabel[0] = 0;
+  g_hasToken = true;
+  g_lastOkMs = g_lastPollMs = millis();
+  g_lastFetchOk = true;
+  hist_push(g_usage.h5, g_usage.d7); accumulate_heat(g_usage.h5); save_history();
+  Serial.printf("[ACCT] token salvo no slot %d (%s)\n",
+                g_tokenTargetSlot, g_accts.label[g_tokenTargetSlot]);
+  request_state(ST_MAIN);
 }
 
 // ============================================================
@@ -1765,6 +1880,15 @@ static void ui_main() {
   g_hdrStatus = mklabel(scr, "", &lv_font_montserrat_12, C_MUTED);
   lv_obj_align(g_hdrStatus, LV_ALIGN_TOP_RIGHT, -92, 16);
 
+  if (accountCount(g_accts) > 1) {
+    char ab[ACCT_LBL_MAX + 1];
+    snprintf(ab, sizeof(ab), "@%s", g_accts.label[g_accts.active]);
+    lv_obj_t *acct = mklabel(scr, ab, &lv_font_montserrat_12, C_ACCENT);
+    lv_obj_set_width(acct, 66);
+    lv_label_set_long_mode(acct, LV_LABEL_LONG_DOT);
+    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, 140, 16);
+  }
+
   lv_obj_t *gear = mkbtn(scr, LV_SYMBOL_SETTINGS, &lv_font_montserrat_22, C_SURFACE2, C_TEXT);
   lv_obj_set_size(gear, 78, 40);
   lv_obj_set_ext_click_area(gear, 16);
@@ -1826,12 +1950,18 @@ static const int POLL_OPTS[4] = {30, 60, 120, 300};
 static const int TZ_OPTS[] = {-3, -4, -5, -6, -7, -8, -2, -1, 0, 1, 2, 3};
 #define NTZ ((int)(sizeof(TZ_OPTS) / sizeof(TZ_OPTS[0])))
 
+static int g_acctDelArmed = -1;
+
 static void settings_action_cb(lv_event_t *e) {
   int act = (int)(intptr_t)lv_event_get_user_data(e);
   switch (act) {
     case 0: request_state(ST_LOADING); break;          // atualizar
     case 1: g_onboarding = false; request_state(ST_WIFI); break;
-    case 2: request_state(ST_TOKEN); break;            // trocar token
+    case 2:                                            // trocar token
+      g_tokenTargetSlot = g_accts.active;
+      g_pendingLabel[0] = 0;
+      request_state(ST_TOKEN);
+      break;
     case 3:                                            // brilho
       g_briIdx = (g_briIdx + 1) % 3; g_prefs.putInt("bri", g_briIdx); apply_brightness();
       if (g_briLbl) {
@@ -1903,6 +2033,7 @@ static void settings_action_cb(lv_event_t *e) {
       request_state(ST_SETTINGS);                      // redesenha tudo no novo idioma
       break;
     case 10: request_state(ST_ABOUT); break;           // sobre / about
+    case 11: g_acctDelArmed = -1; request_state(ST_ACCOUNTS); break;
   }
 }
 static void add_setting_row(lv_obj_t *p, const char *txt, int act, uint32_t fg, lv_obj_t **out) {
@@ -1967,12 +2098,202 @@ static void ui_settings() {
   add_setting_row(lst, bri,                                      3, C_TEXT, &g_briLbl);
   add_setting_row(lst, TRS(LV_SYMBOL_WIFI "  Configurar WiFi",
                            LV_SYMBOL_WIFI "  Configure WiFi"),   1, C_TEXT, nullptr);
+  char acctTxt[64];
+  snprintf(acctTxt, sizeof(acctTxt), TRS(LV_SYMBOL_DIRECTORY "  Contas: %s (%d/%d)",
+                                         LV_SYMBOL_DIRECTORY "  Accounts: %s (%d/%d)"),
+           g_accts.label[g_accts.active], accountCount(g_accts), ACCT_MAX);
+  add_setting_row(lst, acctTxt,                                 11, C_TEXT, nullptr);
   add_setting_row(lst, TRS(LV_SYMBOL_KEYBOARD "  Trocar token",
                            LV_SYMBOL_KEYBOARD "  Change token"), 2, C_TEXT, nullptr);
   add_setting_row(lst, TRS(LV_SYMBOL_FILE "  Sobre",
                            LV_SYMBOL_FILE "  About"),           10, C_TEXT, nullptr);
   add_setting_row(lst, TRS(LV_SYMBOL_TRASH "  Apagar tudo",
                            LV_SYMBOL_TRASH "  Erase everything"), 4, C_BAD, &g_wipeLbl);
+}
+
+static void acct_switch_cb(lv_event_t *e) {
+  int slot = (int)(intptr_t)lv_event_get_user_data(e);
+  g_acctDelArmed = -1;
+  if (slot == g_accts.active) return;
+  if (!switch_account(slot)) request_state(ST_ACCOUNTS);
+}
+static void acct_del_cb(lv_event_t *e) {
+  int slot = (int)(intptr_t)lv_event_get_user_data(e);
+  if (accountCount(g_accts) <= 1) return;
+  if (g_acctDelArmed != slot) {
+    g_acctDelArmed = slot;
+    request_state(ST_ACCOUNTS);
+    return;
+  }
+  g_acctDelArmed = -1;
+  bool wasActive = (slot == g_accts.active);
+  accountRemove(g_prefs, g_accts, slot);
+  char pth[16]; snprintf(pth, sizeof(pth), "/hist%d.bin", slot);
+  LittleFS.remove(pth);
+  if (wasActive) {
+    EncryptedBlob b; char tok[200];
+    if (accountLoadBlob(g_prefs, g_accts.active, b) &&
+        decryptToken(b, g_sessionPin, tok, sizeof(tok))) {
+      g_blob = b;
+      strlcpy(g_token, tok, sizeof(g_token));
+      memset(tok, 0, sizeof(tok));
+      reset_history_ram();
+      load_history();
+      memset(&g_tok, 0, sizeof(g_tok));
+      memset(&g_usage, 0, sizeof(g_usage));
+      request_state(ST_LOADING);
+      return;
+    }
+  }
+  request_state(ST_ACCOUNTS);
+}
+static void acct_add_cb(lv_event_t *e) {
+  (void)e;
+  int slot = accountFirstFree(g_accts);
+  if (slot < 0) return;
+  g_tokenTargetSlot = slot;
+  g_pendingLabel[0] = 0;
+  request_state(ST_TOKEN);
+}
+static int g_renameSlot = -1;
+static lv_obj_t *g_nameTa = nullptr;
+
+static void acct_edit_cb(lv_event_t *e) {
+  g_renameSlot = (int)(intptr_t)lv_event_get_user_data(e);
+  g_acctDelArmed = -1;
+  request_state(ST_ACCT_NAME);
+}
+static void acct_name_kb_cb(lv_event_t *e) {
+  lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_READY) {
+    accountSetLabel(g_prefs, g_accts, g_renameSlot, lv_textarea_get_text(g_nameTa));
+    request_state(ST_ACCOUNTS);
+  } else if (code == LV_EVENT_CANCEL) {
+    request_state(ST_ACCOUNTS);
+  }
+}
+
+static void ui_account_name() {
+  if (g_renameSlot < 0 || g_renameSlot >= ACCT_MAX || !g_accts.used[g_renameSlot]) {
+    request_state(ST_ACCOUNTS);
+    return;
+  }
+  lv_obj_t *scr = lv_screen_active();
+
+  lv_obj_t *title = mklabel(scr, TRS("Renomear conta", "Rename account"),
+                            &lv_font_montserrat_20, C_TEXT);
+  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 14, 10);
+
+  lv_obj_t *bk = mkbtn(scr, TRS(LV_SYMBOL_LEFT " Voltar", LV_SYMBOL_LEFT " Back"),
+                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
+  lv_obj_set_size(bk, 100, 32);
+  lv_obj_set_ext_click_area(bk, 6);
+  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -12, 6);
+  lv_obj_add_event_cb(bk, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_ACCOUNTS);
+
+  g_nameTa = lv_textarea_create(scr);
+  lv_textarea_set_one_line(g_nameTa, true);
+  lv_textarea_set_max_length(g_nameTa, ACCT_LBL_MAX - 1);
+  lv_textarea_set_text(g_nameTa, g_accts.label[g_renameSlot]);
+  lv_textarea_set_placeholder_text(g_nameTa, TRS("rotulo (ex.: Pessoal, Trabalho)",
+                                                 "label (e.g. Personal, Work)"));
+  lv_obj_set_size(g_nameTa, 452, 44);
+  lv_obj_align(g_nameTa, LV_ALIGN_TOP_MID, 0, 52);
+
+  lv_obj_t *kb = lv_keyboard_create(scr);
+  lv_keyboard_set_textarea(kb, g_nameTa);
+  lv_obj_add_event_cb(kb, acct_name_kb_cb, LV_EVENT_ALL, NULL);
+}
+
+static void ui_accounts() {
+  lv_obj_t *scr = lv_screen_active();
+  start_data_web();
+
+  lv_obj_t *title = mklabel(scr, TRS("Contas", "Accounts"), &lv_font_montserrat_20, C_TEXT);
+  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 14, 10);
+
+  lv_obj_t *bk = mkbtn(scr, TRS(LV_SYMBOL_LEFT " Voltar", LV_SYMBOL_LEFT " Back"),
+                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
+  lv_obj_set_size(bk, 100, 32);
+  lv_obj_set_ext_click_area(bk, 6);
+  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -12, 6);
+  lv_obj_add_event_cb(bk, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_SETTINGS);
+
+  lv_obj_t *lst = lv_obj_create(scr);
+  lv_obj_set_pos(lst, 8, 44);
+  lv_obj_set_size(lst, 464, 240);
+  lv_obj_set_style_bg_opa(lst, 0, 0);
+  lv_obj_set_style_border_width(lst, 0, 0);
+  lv_obj_set_style_pad_all(lst, 0, 0);
+  lv_obj_set_style_pad_row(lst, 8, 0);
+  lv_obj_set_flex_flow(lst, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_scroll_dir(lst, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(lst, LV_SCROLLBAR_MODE_AUTO);
+
+  bool canDelete = accountCount(g_accts) > 1;
+  for (int i = 0; i < ACCT_MAX; i++) {
+    if (!g_accts.used[i]) continue;
+    bool active = (i == g_accts.active);
+
+    lv_obj_t *row = lv_obj_create(lst);
+    lv_obj_set_size(row, 444, 44);
+    no_box(row);
+
+    lv_obj_t *b = lv_button_create(row);
+    lv_obj_set_size(b, canDelete ? 324 : 384, 44);
+    lv_obj_set_pos(b, 0, 0);
+    lv_obj_set_style_bg_color(b, lv_color_hex(C_SURFACE), 0);
+    lv_obj_set_style_radius(b, 12, 0);
+    lv_obj_set_style_shadow_width(b, 0, 0);
+    char txt[40];
+    snprintf(txt, sizeof(txt), "%s%s", g_accts.label[i],
+             active ? TRS("  \xE2\x80\xA2  ativa", "  \xE2\x80\xA2  active") : "");
+    lv_obj_t *l = mklabel(b, txt, &lv_font_montserrat_16, active ? C_ACCENT : C_TEXT);
+    lv_obj_align(l, LV_ALIGN_LEFT_MID, 8, 0);
+    lv_obj_add_event_cb(b, acct_switch_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+
+    lv_obj_t *ed = lv_button_create(row);
+    lv_obj_set_size(ed, 52, 44);
+    lv_obj_set_pos(ed, canDelete ? 332 : 392, 0);
+    lv_obj_set_style_bg_color(ed, lv_color_hex(C_SURFACE2), 0);
+    lv_obj_set_style_radius(ed, 12, 0);
+    lv_obj_set_style_shadow_width(ed, 0, 0);
+    lv_obj_center(mklabel(ed, LV_SYMBOL_EDIT, &lv_font_montserrat_16, C_MUTED));
+    lv_obj_add_event_cb(ed, acct_edit_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+
+    if (canDelete) {
+      bool armed = (g_acctDelArmed == i);
+      lv_obj_t *d = lv_button_create(row);
+      lv_obj_set_size(d, 52, 44);
+      lv_obj_set_pos(d, 392, 0);
+      lv_obj_set_style_bg_color(d, lv_color_hex(armed ? C_BAD : C_SURFACE2), 0);
+      lv_obj_set_style_radius(d, 12, 0);
+      lv_obj_set_style_shadow_width(d, 0, 0);
+      lv_obj_center(mklabel(d, armed ? LV_SYMBOL_WARNING : LV_SYMBOL_TRASH,
+                            &lv_font_montserrat_16, armed ? C_BG : C_MUTED));
+      lv_obj_add_event_cb(d, acct_del_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+    }
+  }
+
+  if (accountFirstFree(g_accts) >= 0) {
+    lv_obj_t *add = lv_button_create(lst);
+    lv_obj_set_size(add, 444, 44);
+    lv_obj_set_style_bg_color(add, lv_color_hex(C_SURFACE2), 0);
+    lv_obj_set_style_radius(add, 12, 0);
+    lv_obj_set_style_shadow_width(add, 0, 0);
+    lv_obj_t *al = mklabel(add, TRS(LV_SYMBOL_PLUS "  Adicionar conta",
+                                    LV_SYMBOL_PLUS "  Add account"),
+                           &lv_font_montserrat_16, C_ACCENT);
+    lv_obj_align(al, LV_ALIGN_LEFT_MID, 8, 0);
+    lv_obj_add_event_cb(add, acct_add_cb, LV_EVENT_CLICKED, NULL);
+  }
+
+  lv_obj_t *hint = mklabel(scr, TRS("So a conta ativa e consultada na API (as outras ficam dormentes).",
+                                    "Only the active account is polled (the others stay dormant)."),
+                           &lv_font_montserrat_12, C_FAINT);
+  lv_obj_set_width(hint, 452);
+  lv_label_set_long_mode(hint, LV_LABEL_LONG_WRAP);
+  lv_obj_align(hint, LV_ALIGN_BOTTOM_LEFT, 14, -8);
 }
 
 // ============================================================
@@ -2044,6 +2365,7 @@ static void render_state() {
   g_mascN = 0;
   g_pinDots = g_pinMsg = nullptr;
   g_tokMsg = nullptr;
+  g_nameTa = nullptr;
   g_hdrStatus = nullptr;
   g_briLbl = g_wipeLbl = g_pollLbl = g_tzLbl = g_slideLbl = nullptr;
 
@@ -2060,6 +2382,8 @@ static void render_state() {
                                                        : TRS("conectando WiFi", "connecting WiFi")); break;
     case ST_MAIN:      ui_main(); break;
     case ST_SETTINGS:  ui_settings(); break;
+    case ST_ACCOUNTS:  ui_accounts(); break;
+    case ST_ACCT_NAME: ui_account_name(); break;
     case ST_ABOUT:     ui_about(); break;
     case ST_ERROR:     ui_message(TRS("Falha", "Failed"),
                                   g_usage.error[0] ? g_usage.error : TRS("sem dados", "no data"), C_BAD); break;
@@ -2164,7 +2488,11 @@ void setup() {
   apply_brightness();
 
   if (!LittleFS.begin(true)) Serial.println("LittleFS: falhou");
-  else load_history();
+  else {
+    if (LittleFS.exists("/hist.bin") && !LittleFS.exists("/hist0.bin"))
+      LittleFS.rename("/hist.bin", "/hist0.bin");
+    load_history();
+  }
 
   g_wifi.begin();
 
@@ -2185,7 +2513,11 @@ void loop() {
   // Servidor web (token no onboarding; /window + /tokens no dashboard)
   if (g_web) {
     g_web->handleClient();
-    if (g_state == ST_TOKEN && g_tokenGot) { g_tokenGot = false; request_state(ST_SETUP_PIN); }
+    if (g_state == ST_TOKEN && g_tokenGot) {
+      g_tokenGot = false;
+      if (g_onboarding || !g_sessionPin[0]) request_state(ST_SETUP_PIN);
+      else finalize_pending_token();
+    }
   }
 
   if (g_dirty) {
