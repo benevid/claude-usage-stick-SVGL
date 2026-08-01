@@ -11,7 +11,14 @@
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
+/* A lvgl compila lv_blend_neon.S / lv_blend_helium.S (ARM) mesmo em outras
+   arquiteturas, e esses .S chegam aqui pela cadeia do lv_conf_internal.h.
+   Sem esta guarda o assembler recebe os typedef do stdint.h e falha com
+   "unknown opcode or format name 'typedef'". E a convencao do proprio
+   lv_conf_template.h da LVGL. */
+#ifndef __ASSEMBLY__
 #include <stdint.h>
+#endif
 
 /*====================
    COLOR
