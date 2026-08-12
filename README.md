@@ -205,7 +205,7 @@ negligible**.
 
 Prerequisites (tested versions):
 
-- `arduino-cli` 1.4.x · core `esp32:esp32` **3.3.8**
+- `arduino-cli` 1.4.x · core `esp32:esp32` **3.3.11**
 - libraries: **GFX Library for Arduino** 1.6.5 · **lvgl** 9.2.2
 
 ```bash
@@ -220,7 +220,27 @@ FQBN: `esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,PartitionScheme=custom,CDCOnB
 
 `build.sh` passes `-DLV_CONF_INCLUDE_SIMPLE -I<sketch>` so LVGL finds the sketch's `lv_conf.h`. If
 you get `lv_conf.h not found`, copy `firmware/claude_stick/lv_conf.h` into your Arduino libraries
-folder (one level above the `lvgl` folder).
+folder (one level above the `lvgl` folder) — copy **this** file, not an older one: the
+`#include <stdint.h>` in it is wrapped in an `#ifndef __ASSEMBLY__` guard, without which the build
+dies while assembling lvgl's `lv_blend_helium.S` / `lv_blend_neon.S`:
+
+```
+xtensa-esp-elf/include/stdint.h:21: Error: unknown opcode or format name 'typedef'
+```
+
+That guard is what lvgl's own `lv_conf_template.h` prescribes, and it is required because
+`lv_conf_internal.h` pulls `lv_conf.h` in *even while assembling* those `.S` files.
+
+One subtlety worth knowing if you build other sketches on this board: the `-I` above rides on
+`compiler.c/cpp.extra_flags`, and the ESP32 core assembles `.S` files with `compiler.S.extra_flags`
+instead. A sketch that carries its own `lv_conf.h` is fine (the sketch folder is on the include path
+either way), but a sketch **without** one falls back to lvgl's `../../lv_conf.h` — that loose file in
+`libraries/`, which may well belong to some other project. If you hit the error above from a sketch
+that has no `lv_conf.h`, pass the `-I` in `compiler.S.extra_flags` too; `firmware/bringup/build.sh`
+does exactly that.
+
+To build the bring-up sketch, use its own script — `firmware/bringup/build.sh`. That folder has no
+`partitions.csv` and no `lv_conf.h`, so the firmware's FQBN does not apply to it.
 
 > If colors come out with red/blue swapped, flip `LV_COLOR_16_SWAP` to `1` in `lv_conf.h`.
 

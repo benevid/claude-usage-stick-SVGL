@@ -12,7 +12,7 @@ secrets.h
 .claude/
 .vscode/
 .idea/
-
+CLAUDE.md
 # ───────── Build / artefatos ─────────
 firmware/*/build/
 .pio/

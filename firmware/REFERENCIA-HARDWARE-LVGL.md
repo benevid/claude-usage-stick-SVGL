@@ -49,7 +49,7 @@ SCREEN_WIDTH=480  SCREEN_HEIGHT=320
 
 | Lib | Versão | Uso |
 |---|---|---|
-| `esp32` (core) | **3.3.8** | toolchain ESP32‑S3 |
+| `esp32` (core) | **3.3.11** | toolchain ESP32‑S3 |
 | `GFX Library for Arduino` (Arduino_GFX) | **1.6.5** | driver QSPI + Canvas (`Arduino_ESP32QSPI`, `Arduino_AXS15231B`, `Arduino_Canvas`) |
 | `lvgl` | **9.2.2** | UI (API v9: `lv_display_create`, etc.) |
 | `ArduinoJson` | **7.2.0** | parse do payload do backend |
@@ -182,7 +182,7 @@ e dá parse no payload enxuto (ver `../docs/03-CONTRATO-API.md`). O device token
 
 ## 10. Build & upload (arduino-cli)
 
-- **arduino-cli 1.4.1**, core **esp32:esp32 3.3.8** já instalados.
+- **arduino-cli 1.4.1**, core **esp32:esp32 3.3.11** já instalados.
 - **Placa conectada:** `/dev/cu.usbmodem101`.
 - `partitions.csv` (16 MB): app0 2 MB + spiffs ~14 MB (LittleFS monta a partição "spiffs").
 

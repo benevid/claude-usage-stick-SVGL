@@ -8,7 +8,10 @@ Firmware para a tela touch **Guition JC4832W535** (AXS15231B QSPI, 480×320).
   (AES-256-GCM + PIN). Veja o build em [`claude_stick/build.sh`](claude_stick/build.sh).
 - **`bringup/`** — bring-up validado no hardware (cores certas, orientação
   USB-à-esquerda e touch alinhado). Referência conhecida-boa da config de
-  display/touch; não é o app.
+  display/touch; não é o app. Compile com o `build.sh` **desta pasta**
+  ([`bringup/build.sh`](bringup/build.sh)) — ele usa `PartitionScheme=huge_app`
+  (não há `partitions.csv` aqui) e reaproveita o `lv_conf.h` do `claude_stick`;
+  o FQBN do firmware não serve para esta pasta.
 - **`REFERENCIA-HARDWARE-LVGL.md`** — pinos, libs testadas, pipeline de flush
   (rotação 270° CW na mão) e armadilhas (PSRAM OPI obrigatória, etc.).
 

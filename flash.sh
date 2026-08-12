@@ -6,7 +6,7 @@
 #     ./flash.sh
 #
 # O script encontra a porta sozinho (espera até 30s se ainda não conectou),
-# compila e grava. Pré-requisitos: arduino-cli + core esp32 3.3.8 + libs
+# compila e grava. Pré-requisitos: arduino-cli + core esp32 3.3.11 + libs
 # (ver firmware/REFERENCIA-HARDWARE-LVGL.md).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"

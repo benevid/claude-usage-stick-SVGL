@@ -9,7 +9,7 @@
 #   ./build.sh monitor <porta> # abre o serial monitor (115200)
 #
 # Pré-requisitos (ver firmware/REFERENCIA-HARDWARE-LVGL.md):
-#   - arduino-cli 1.4.x, core esp32:esp32 3.3.8
+#   - arduino-cli 1.4.x, core esp32:esp32 3.3.11
 #   - libs: GFX Library for Arduino 1.6.5, lvgl 9.2.2
 #
 # O -DLV_CONF_INCLUDE_SIMPLE + -I<sketch> faz o LVGL achar o nosso lv_conf.h.
