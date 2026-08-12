@@ -1,5 +1,6 @@
 #include "accounts.h"
 #include <string.h>
+#include <strings.h>   // strcasecmp
 #include <stdio.h>
 
 static void keyName(const char* base, int slot, char* out, size_t sz) {
@@ -17,9 +18,36 @@ static void sanitizeLabel(const char* in, char* out) {
     out[n] = 0;
 }
 
+// Garante rotulo unico entre os slots em uso, acrescentando " 2", " 3"... quando
+// preciso. Necessario porque o tools/token_bridge.py identifica a conta PELO
+// ROTULO (--account <rotulo>, comparado em GET /window e POST /tokens): dois
+// slots com o mesmo nome deixariam o push ambiguo. A comparacao ignora
+// maiuscula/minuscula — "Trabalho" e "trabalho" seriam distintos para o strcmp
+// do bridge, mas indistinguiveis para quem olha a tela.
+static void makeUnique(const AccountSlots& s, int slot, char* lbl) {
+    char base[ACCT_LBL_MAX];
+    strlcpy(base, lbl, sizeof(base));
+    // ha no maximo ACCT_MAX-1 rotulos concorrentes, entao um sufixo ate
+    // ACCT_MAX+1 sempre sobra e o laco termina.
+    for (int n = 2; n <= ACCT_MAX + 1; n++) {
+        bool clash = false;
+        for (int i = 0; i < ACCT_MAX; i++)
+            if (i != slot && s.used[i] && strcasecmp(s.label[i], lbl) == 0) { clash = true; break; }
+        if (!clash) return;
+        char trimmed[ACCT_LBL_MAX];
+        strlcpy(trimmed, base, ACCT_LBL_MAX - 2);   // reserva espaco p/ " N"
+        snprintf(lbl, ACCT_LBL_MAX, "%s %d", trimmed, n);
+    }
+}
+
 void accountsLoad(Preferences& p, AccountSlots& s) {
     memset(&s, 0, sizeof(s));
 
+    // Migracao do formato de conta unica: "blob" -> "blob0". O "blob" antigo é
+    // DELIBERADAMENTE preservado — serve de copia de rollback caso a placa volte
+    // a rodar um firmware anterior ao multi-conta (que so conhece essa chave).
+    // Migrar de novo por cima é impossivel: a condicao exige "blob0" ausente.
+    // Custo: ~550 bytes de NVS. Quem quiser recuperar o espaco usa Apagar tudo.
     if (p.getBytesLength("blob") == sizeof(EncryptedBlob) &&
         p.getBytesLength("blob0") != sizeof(EncryptedBlob)) {
         EncryptedBlob b;
@@ -27,7 +55,6 @@ void accountsLoad(Preferences& p, AccountSlots& s) {
         p.putBytes("blob0", &b, sizeof(b));
         p.putString("lbl0", "Conta 1");
         p.putInt("acct", 0);
-        p.remove("blob");
     }
 
     char k[8];
@@ -72,6 +99,7 @@ void accountSetLabel(Preferences& p, AccountSlots& s, int slot, const char* labe
     char clean[ACCT_LBL_MAX];
     sanitizeLabel(label ? label : "", clean);
     if (!clean[0]) snprintf(clean, sizeof(clean), "Conta %d", slot + 1);
+    makeUnique(s, slot, clean);
     char k[8];
     keyName("lbl", slot, k, sizeof(k));
     p.putString(k, clean);

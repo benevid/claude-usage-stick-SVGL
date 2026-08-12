@@ -97,6 +97,11 @@ static bool g_hasToken = false;              // existe conta salva no NVS
 static bool g_onboarding = false;            // primeiro setup em andamento
 static char g_token[200] = {0};              // token decifrado (só em RAM)
 static char g_pendingToken[200] = {0};       // token digitado, aguardando PIN
+// PIN da sessao: fica em RAM do desbloqueio ate o reboot, porque trocar de conta
+// e adicionar conta precisam decifrar/cifrar OUTROS slots sem pedir o PIN de novo.
+// Trade-off aceito: nao enfraquece o modelo — o token JA vive decifrado em
+// g_token, entao quem consegue ler a RAM ja tem o que interessa. O que continua
+// valendo: nada disso vai para o NVS, e factory_reset() zera este buffer.
 static char g_sessionPin[PIN_LEN + 1] = {0};
 static int  g_tokenTargetSlot = 0;
 static char g_pendingLabel[ACCT_LBL_MAX] = {0};
@@ -409,7 +414,9 @@ static void pin_submit() {
     memset(g_pendingToken, 0, sizeof(g_pendingToken));
     g_hasToken = true; g_onboarding = false;
     g_pinAttempts = 0; save_attempts();
-    g_pinConfirming = false; g_pinFirst[0] = 0; g_pinEntry[0] = 0;
+    g_pinConfirming = false;
+    memset(g_pinFirst, 0, sizeof(g_pinFirst));   // zera de fato: os digitos ficam
+    memset(g_pinEntry, 0, sizeof(g_pinEntry));   // na RAM se so o [0] for limpo
     Serial.println("[PIN] token cifrado e salvo");
     request_state(g_wifi.isConnected() ? ST_LOADING : ST_WIFI);
     return;
@@ -419,7 +426,7 @@ static void pin_submit() {
   if (decryptToken(g_blob, g_pinEntry, g_token, sizeof(g_token))) {
     g_pinAttempts = 0; save_attempts();
     strlcpy(g_sessionPin, g_pinEntry, sizeof(g_sessionPin));
-    g_pinEntry[0] = 0;
+    memset(g_pinEntry, 0, sizeof(g_pinEntry));
     Serial.printf("[PIN] ok, token %d chars\n", (int)strlen(g_token));
     if (!g_wifi.isConnected()) g_wifi.autoConnect(WIFI_CONNECT_TIMEOUT_MS);
     request_state(g_wifi.isConnected() ? ST_LOADING : ST_WIFI);
@@ -994,6 +1001,27 @@ static void load_history() {
     }
   }
   f.close();
+}
+
+// Copia byte a byte (o LittleFS nao tem copy). Usada na migracao para multi-conta:
+// /hist.bin vira /hist0.bin mas o original FICA, para que um firmware anterior ao
+// multi-conta (que so conhece /hist.bin) ainda ache o historico se a placa voltar.
+// Custo: ~4,5 KB duplicados numa particao de ~14 MB.
+static bool copy_file(const char *from, const char *to) {
+  File src = LittleFS.open(from, "r");
+  if (!src) return false;
+  File dst = LittleFS.open(to, "w");
+  if (!dst) { src.close(); return false; }
+  uint8_t buf[512];
+  bool ok = true;
+  for (;;) {
+    int n = src.read(buf, sizeof(buf));
+    if (n <= 0) break;
+    if (dst.write(buf, (size_t)n) != (size_t)n) { ok = false; break; }
+  }
+  dst.close();
+  src.close();
+  return ok;
 }
 
 static bool switch_account(int slot) {
@@ -1880,13 +1908,18 @@ static void ui_main() {
   g_hdrStatus = mklabel(scr, "", &lv_font_montserrat_12, C_MUTED);
   lv_obj_align(g_hdrStatus, LV_ALIGN_TOP_RIGHT, -92, 16);
 
+  // Badge da conta ativa. A faixa livre do cabecalho e estreita: o hotspot do
+  // logo termina em x=134 e o botao de atualizar (56 px centrado, mais 10 px de
+  // ext_click_area) passa a capturar toque em x=202. Ficar em 138..194 deixa
+  // 8 px de folga do lado direito — encostar em 202 faria o toque "no badge"
+  // disparar o refresh. LONG_DOT corta o rotulo que nao couber.
   if (accountCount(g_accts) > 1) {
     char ab[ACCT_LBL_MAX + 1];
     snprintf(ab, sizeof(ab), "@%s", g_accts.label[g_accts.active]);
     lv_obj_t *acct = mklabel(scr, ab, &lv_font_montserrat_12, C_ACCENT);
-    lv_obj_set_width(acct, 66);
+    lv_obj_set_width(acct, 56);
     lv_label_set_long_mode(acct, LV_LABEL_LONG_DOT);
-    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, 140, 16);
+    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, 138, 16);
   }
 
   lv_obj_t *gear = mkbtn(scr, LV_SYMBOL_SETTINGS, &lv_font_montserrat_22, C_SURFACE2, C_TEXT);
@@ -2489,8 +2522,19 @@ void setup() {
 
   if (!LittleFS.begin(true)) Serial.println("LittleFS: falhou");
   else {
-    if (LittleFS.exists("/hist.bin") && !LittleFS.exists("/hist0.bin"))
-      LittleFS.rename("/hist.bin", "/hist0.bin");
+    // Migracao para multi-conta, feita em DOIS passos de proposito: copia para um
+    // .tmp e so entao renomeia. Se faltar energia no meio, o que sobra e um .tmp
+    // truncado — /hist0.bin ainda nao existe, entao o proximo boot refaz a
+    // migracao. Copiar direto para o destino final deixaria um /hist0.bin pela
+    // metade que a guarda "exists" tomaria por migracao concluida.
+    // O /hist.bin original nunca e apagado (rollback p/ firmware anterior).
+    if (LittleFS.exists("/hist.bin") && !LittleFS.exists("/hist0.bin")) {
+      LittleFS.remove("/hist0.tmp");                       // sobra de tentativa anterior
+      bool ok = copy_file("/hist.bin", "/hist0.tmp") &&
+                LittleFS.rename("/hist0.tmp", "/hist0.bin");
+      if (!ok) LittleFS.remove("/hist0.tmp");
+      Serial.printf("[HIST] migrando p/ multi-conta: %s\n", ok ? "ok" : "FALHOU");
+    }
     load_history();
   }
 
