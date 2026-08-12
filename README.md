@@ -97,7 +97,10 @@ Opened from the gear (scrollable list, 44 px touch rows):
 - **Timezone: GMT±N** — adjusts the timezone (tap to cycle; fixes the reset clocks).
 - **Brightness** — low / medium / high (backlight PWM).
 - **Configure WiFi** — re-scan + password on screen.
-- **Change token** — reopens the web token entry.
+- **Accounts** — up to 4 Claude accounts (e.g. personal + work); tap a slot to switch which one
+  the device monitors, add via the web form (with a custom label), rename on-screen (pencil),
+  remove with 2 taps.
+- **Change token** — reopens the web token entry (replaces the active account's token).
 - **Language** — Portuguese / English, applied to the whole UI (saved to NVS).
 - **About** — device info, display model and developer credits.
 - **Erase everything** — factory reset (2 taps to confirm).
@@ -168,6 +171,26 @@ python3 tools/token_bridge.py --loop 120    # keep pushing every 2 min
 
 The device advertises itself via mDNS as **`claude-stick.local`** while the dashboard is open. If
 the row disappears, the data just went stale (> 15 min without a push).
+
+With multiple accounts, run one bridge per machine with `--account <label>` (the label configured
+on the gadget). `GET /window` reports which account is active; a push for another account gets a
+`409` and is simply skipped until that account becomes active again.
+
+```bash
+python3 tools/token_bridge.py --account Trabalho --loop 120   # work laptop
+python3 tools/token_bridge.py --account Pessoal --loop 120    # personal machine
+```
+
+### Multiple accounts
+
+The device stores up to **4 accounts** (label + token), each encrypted in its own NVS slot with
+the same PIN. Only the **active** account is polled — the others stay dormant, generating **zero
+API traffic**. Switching (Settings → Accounts) takes two taps: the device decrypts the slot,
+swaps the per-account history/heatmap (`/hist0.bin`..`/hist3.bin` in LittleFS) and refreshes
+immediately. The dashboard header shows an `@label` badge whenever more than one account exists.
+
+Heads-up for corporate accounts: every poll is a real (minimal) API request, visible to your org's
+admins like any Claude Code usage.
 
 ### Generating the token (`claude setup-token`)
 
@@ -253,19 +276,22 @@ Everything via the screen / network — no recompiling needed:
 1. **WiFi** — tap your network and type the password (on-screen keyboard). Stores up to 3 networks
    in NVS.
 2. **Token** — the screen shows the **gadget's IP** (e.g. `http://192.168.0.42`) with an animated
-   Claude icon. Open that address **on your PC/phone on the same network** and **paste the token**
-   into the form. The device **validates** the token on the spot (a real API call) before
-   accepting it.
+   Claude icon. Open that address **on your PC/phone on the same network**, optionally give the
+   account a **label** (e.g. *Pessoal*, *Trabalho*) and **paste the token** into the form. The
+   device **validates** the token on the spot (a real API call) before accepting it.
 3. **PIN** — set a 4-digit PIN (entered twice to confirm). The token is encrypted with it.
 
-On every subsequent boot, the device only asks for the **PIN** to decrypt the token.
+On every subsequent boot, the device only asks for the **PIN** to decrypt the token. Extra
+accounts added later (Settings → Accounts) reuse the same form and are encrypted with the same
+PIN — no PIN prompt again during the session.
 
 ---
 
 ## Security
 
-- The token is stored **encrypted** (AES-256-GCM; key derived from the PIN via SHA-256). The PIN
-  is **never** stored — a wrong PIN means the GCM tag fails to verify.
+- Tokens are stored **encrypted** (AES-256-GCM; key derived from the PIN via SHA-256), one NVS
+  slot per account, all under the **same PIN**. The PIN is **never** stored — a wrong PIN means
+  the GCM tag fails to verify.
 - After 10 wrong attempts, the credentials are **wiped** and the device returns to onboarding
   (each failure doubles the lockout time).
 - The history/heatmap lives in a **LittleFS** file (it does not contain the token).
@@ -308,6 +334,7 @@ firmware/
     api.cpp/.h                  # fetchUsage() — usage via API headers
     status.cpp/.h               # fetchModelStatus() — model health
     crypto.cpp/.h               # AES-256-GCM + PIN-derived key
+    accounts.cpp/.h             # account slots in NVS (multi-account)
     certs.cpp/.h                # CA bundle for HTTPS
     wifi_manager.h              # networks saved in NVS (up to 3)
     touch.h                     # AXS15231B driver
