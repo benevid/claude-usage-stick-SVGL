@@ -11,7 +11,12 @@
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
+/* Guard necessário: este arquivo também entra no preprocessamento dos fontes
+ * assembly do LVGL (lv_blend_helium.S / lv_blend_neon.S) via -I do sketch;
+ * um include C sem guard injeta typedefs no input do assembler Xtensa. */
+#if !defined(__ASSEMBLY__) && !defined(__ASSEMBLER__)
 #include <stdint.h>
+#endif
 
 /*====================
    COLOR
