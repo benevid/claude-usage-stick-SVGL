@@ -1,13 +1,24 @@
-# Claude Usage Stick — touch screen (ESP32-S3 + LVGL)
+<div align="center">
 
-A desk gadget that shows your **Claude Code rate-limit usage** in real time on a 3.5" touch
-screen. No computer, no app, no cloud: the device queries Anthropic's API directly, reads usage
-straight from the response headers, and renders it all on a friendly dashboard — with animated
-**Clawd** mascots, a usage trend chart, an hour-of-day heatmap and reset clocks.
+<img src="assets/brand/claudecode-color.svg" width="76" alt="Clawd">
 
-<p align="center">
-  <img src="assets/mock-agora.png" width="520" alt="Claude Usage Stick — Now screen (mockup)">
-</p>
+# Claude Usage Stick
+
+**Your Claude Code rate limits, live on a 3.5" touch screen.**<br>
+No computer. No app. No cloud.
+
+<img src="https://img.shields.io/badge/firmware-v2.2-D97757?style=for-the-badge" alt="firmware v2.2">
+<img src="https://img.shields.io/badge/ESP32--S3-AXS15231B%20480×320-1A1A20?style=for-the-badge" alt="ESP32-S3 AXS15231B">
+<img src="https://img.shields.io/badge/LVGL-9.2.2-4ADE80?style=for-the-badge" alt="LVGL 9.2.2">
+<img src="https://img.shields.io/badge/accounts-up%20to%204-8C8C98?style=for-the-badge" alt="up to 4 accounts">
+
+<img src="assets/mock-agora.png" width="560" alt="Claude Usage Stick — Now screen (mockup)">
+
+</div>
+
+The device queries Anthropic's API directly, reads your usage straight from the response headers,
+and renders it on a dashboard — animated **Clawd** mascots, a burn-rate projection, an hour-of-day
+heatmap, reset clocks, and **up to 4 accounts** you can switch between on-screen.
 
 > 100% touch navigation (swipe ← → between screens, no physical button). Adapted from the original
 > **Claude Usage Stick** project (a multi-board firmware with physical buttons) to run **on this
@@ -20,7 +31,10 @@ straight from the response headers, and renders it all on a friendly dashboard �
 
 ## Screens
 
-> The images below are **pixel-accurate mockups** of the v2.1 layout (real device photos coming soon). Regenerate them with `python3 tools/gen_mockups.py`. The firmware is now **v2.2** — the mockups do not yet show the account badge in the header.
+> The images below are **pixel-accurate mockups** rendered from the firmware's own layout and
+> palette (real device photos coming soon) — regenerate with `python3 tools/gen_mockups.py`. They
+> match v2.2, except that the four swipe screens do not yet show the `@label` account badge that
+> appears in the header once you add a second account.
 
 Navigate by **swiping** (the dots at the bottom show your position; the active one becomes a
 pill). The **gear** opens Settings. The thin **coral bar** below the header counts down to the
@@ -104,6 +118,27 @@ Opened from the gear (scrollable list, 44 px touch rows):
 - **Language** — Portuguese / English, applied to the whole UI (saved to NVS).
 - **About** — device info, display model and developer credits.
 - **Erase everything** — factory reset (2 taps to confirm).
+
+### Accounts (*Contas*)
+<img src="assets/mock-contas.png" width="400" align="right" alt="Accounts screen">
+
+Got a personal **and** a work Claude subscription? The device holds **up to 4**, each with its own
+label and its own encrypted slot, all behind the same PIN.
+
+- **Tap a row to switch.** The active one is coral and marked *ativa*. Switching swaps the token
+  and that account's history/heatmap, then refreshes immediately — no PIN prompt, the session
+  already unlocked it.
+- **Only the active account is polled.** The others are completely dormant: **zero API requests**.
+  That matters for a corporate account, where every poll is visible to your org's admins.
+- **Pencil renames** on-screen; duplicate names get a " 2" suffix automatically, because the
+  [token bridge](#tokens-per-session-optional-bridge) identifies accounts by label.
+- **Trash removes** (2 taps to confirm), and it will not let you delete the last one.
+- **+ Add account** reuses the web form, which now takes a label along with the token.
+
+When more than one account exists, the dashboard header shows an `@label` badge so you always know
+which one you are looking at.
+
+<br clear="right">
 
 ---
 

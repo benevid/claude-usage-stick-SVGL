@@ -240,6 +240,61 @@ def mock_ritmo():
     return im
 
 
+# ---------------- tela: Ajustes -> Contas ----------------
+# Espelha ui_accounts() do firmware: titulo em (14,10) f20; botao Voltar 100x32
+# no canto sup. direito; lista em (8,44) 464x240, linhas de 444x44 com pad_row 8.
+# Com >1 conta cabe o lixo, entao o botao do nome tem 324 px (senao 384) e os dois
+# icones ficam em x=332 e x=392, ambos 52x44.
+def pencil(d, cx, cy, color):
+    """LV_SYMBOL_EDIT — lapis diagonal."""
+    d.line((cx - 6, cy + 6, cx + 5, cy - 5), fill=hexrgb(color), width=3)
+    d.polygon([(cx - 8, cy + 8), (cx - 7, cy + 3), (cx - 3, cy + 7)], fill=hexrgb(color))
+    d.line((cx + 4, cy - 7, cx + 7, cy - 4), fill=hexrgb(color), width=3)
+
+
+def trash(d, cx, cy, color):
+    """LV_SYMBOL_TRASH — lixeira."""
+    c = hexrgb(color)
+    d.rectangle((cx - 7, cy - 7, cx + 7, cy - 5), fill=c)
+    d.rectangle((cx - 3, cy - 10, cx + 3, cy - 8), fill=c)
+    d.rounded_rectangle((cx - 6, cy - 4, cx + 6, cy + 9), 2, outline=c, width=2)
+    for dx in (-2, 2):
+        d.line((cx + dx, cy - 1, cx + dx, cy + 6), fill=c, width=1)
+
+
+def mock_contas():
+    im, d = canvas()
+    d.text((14, 10), "Contas", font=F(20), fill=hexrgb(TEXT))
+
+    # Voltar (100x32, canto superior direito)
+    d.rounded_rectangle((368, 6, 468, 38), 10, fill=hexrgb(SURF2))
+    d.polygon([(388, 22), (395, 16), (395, 28)], fill=hexrgb(MUTED))
+    d.text((402, 22), "Voltar", font=F(14), fill=hexrgb(MUTED), anchor="lm")
+
+    rows = (("ClaudeMAX", True), ("Trabalho", False), ("Faculdade", False))
+    y = 44
+    for name, active in rows:
+        d.rounded_rectangle((8, y, 8 + 324, y + 44), 12, fill=hexrgb(SURF))
+        txt = f"{name}  •  ativa" if active else name
+        d.text((22, y + 22), txt, font=F(16),
+               fill=hexrgb(ACCENT if active else TEXT), anchor="lm")
+        d.rounded_rectangle((340, y, 392, y + 44), 12, fill=hexrgb(SURF2))
+        pencil(d, 366, y + 22, MUTED)
+        d.rounded_rectangle((400, y, 452, y + 44), 12, fill=hexrgb(SURF2))
+        trash(d, 426, y + 22, MUTED)
+        y += 52
+
+    # + Adicionar conta (ocupa a linha inteira; some quando os 4 slots estao cheios)
+    d.rounded_rectangle((8, y, 452, y + 44), 12, fill=hexrgb(SURF2))
+    d.line((26, y + 22, 38, y + 22), fill=hexrgb(ACCENT), width=3)
+    d.line((32, y + 16, 32, y + 28), fill=hexrgb(ACCENT), width=3)
+    d.text((50, y + 22), "Adicionar conta", font=F(16), fill=hexrgb(ACCENT), anchor="lm")
+
+    d.text((14, 300), "So a conta ativa e consultada na API (as outras ficam dormentes).",
+           font=F(12), fill=hexrgb(FAINT), anchor="lm")
+    return im
+
+
 # ---------------- momento de limiar (70% na 5h) ----------------
 def mock_momento():
     im = Image.new("RGBA", (480, 320), (13, 13, 16, 255))
@@ -265,6 +320,7 @@ def main():
         "mock-modelos.png": mock_modelos(),
         "mock-janela5h.png": mock_janela(),
         "mock-ritmo.png": mock_ritmo(),
+        "mock-contas.png": mock_contas(),
         "mock-momento.png": mock_momento(),
     }
     for name, im in outs.items():
