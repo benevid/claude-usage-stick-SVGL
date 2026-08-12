@@ -20,7 +20,7 @@ straight from the response headers, and renders it all on a friendly dashboard �
 
 ## Screens
 
-> The images below are **pixel-accurate mockups** of the v2.1 layout (real device photos coming soon). Regenerate them with `python3 tools/gen_mockups.py`.
+> The images below are **pixel-accurate mockups** of the v2.1 layout (real device photos coming soon). Regenerate them with `python3 tools/gen_mockups.py`. The firmware is now **v2.2** — the mockups do not yet show the account badge in the header.
 
 Navigate by **swiping** (the dots at the bottom show your position; the active one becomes a
 pill). The **gear** opens Settings. The thin **coral bar** below the header counts down to the
@@ -192,6 +192,12 @@ immediately. The dashboard header shows an `@label` badge whenever more than one
 Heads-up for corporate accounts: every poll is a real (minimal) API request, visible to your org's
 admins like any Claude Code usage.
 
+**Upgrading a device that already runs v2.1?** Nothing is lost and nothing is asked of you. The
+first boot moves the single stored token into slot 0 (labelled "Conta 1") and gives it a copy of
+the existing history. Both originals are deliberately **kept**, so flashing v2.1 again finds them
+where it left them — the migration only ever adds. Flashing does not touch the `nvs` or `spiffs`
+partitions in the first place; only the app partition is rewritten.
+
 ### Generating the token (`claude setup-token`)
 
 In a terminal, with **Claude Code** installed and logged into your subscription (**Pro** or
@@ -294,7 +300,10 @@ PIN — no PIN prompt again during the session.
   the GCM tag fails to verify.
 - After 10 wrong attempts, the credentials are **wiped** and the device returns to onboarding
   (each failure doubles the lockout time).
-- The history/heatmap lives in a **LittleFS** file (it does not contain the token).
+- The history/heatmap lives in a **LittleFS** file, one per account (it does not contain the token).
+- The PIN stays in RAM for the session so switching accounts does not prompt again. This does not
+  weaken the model: the active token is already held decrypted in RAM either way. Nothing is
+  written to NVS, and a factory reset clears it.
 - `.env` and `.mcp.json` are in `.gitignore` — **no secrets go to git**.
 
 ---
@@ -343,6 +352,7 @@ firmware/
     partitions.csv              # 16 MB partition (app + nvs + LittleFS)
     build.sh                    # compile / flash / monitor
   bringup/                      # validated bring-up (hardware reference)
+    build.sh                    # its own FQBN — see Build & flash
   REFERENCIA-HARDWARE-LVGL.md   # display/colors/touch that work
 assets/                         # mockups das telas + assets de marca (brand/)
 3D Case/                        # case imprimível (STL) para a placa
@@ -360,3 +370,27 @@ assets/                         # mockups das telas + assets de marca (brand/)
 
 Fork of the original **Claude Usage Stick**. This version's firmware was rewritten for the
 ESP32-S3 480×320 LVGL screen. Not an official Anthropic product.
+
+### Contributors
+
+For a while this project compiled on exactly one machine in the world — mine. Thanks to the people
+who found that and fixed it, and to the one who taught it a new trick:
+
+- **[@jzimath-lab](https://github.com/jzimath-lab)** — [#1](https://github.com/benevid/claude-usage-stick-SVGL/pull/1),
+  merged. Tracked down why the firmware would not build anywhere else: `lv_conf.h`'s
+  `#include <stdint.h>` needs an `#ifndef __ASSEMBLY__` guard, because `lv_conf_internal.h` pulls
+  that header in *while assembling* lvgl's `.S` files. Also spotted that
+  `AXS15231B_Touch::_instance` is a definition sitting in a header, which only got away with it
+  while the sketch was a single translation unit.
+- **[@mpsd18](https://github.com/mpsd18)** — [#3](https://github.com/benevid/claude-usage-stick-SVGL/pull/3).
+  Reached the same root cause independently and explained the piece nobody else did: the include
+  path rides on `compiler.c/cpp.extra_flags`, while the ESP32 core assembles `.S` files with
+  `compiler.S.extra_flags`. That analysis is why `firmware/bringup/build.sh` passes it in all
+  three, and it is the reason the Windows fallback in *Build & flash* is documented the way it is.
+- **[@ViniciusLoureiro67](https://github.com/ViniciusLoureiro67)** — [#4](https://github.com/benevid/claude-usage-stick-SVGL/pull/4).
+  A third independent confirmation, on a JC3248W535C, and closed the duplicate voluntarily,
+  pointing at #1. Three people arriving at the same cause from three setups is what made it obvious
+  the problem was here, not there.
+- **[@renanravelli](https://github.com/renanravelli)** — [#2](https://github.com/benevid/claude-usage-stick-SVGL/pull/2),
+  merged. Multi-account support: up to 4 accounts, only the active one polled, per-account history,
+  on-screen rename, and the `--account` flag in the token bridge.
