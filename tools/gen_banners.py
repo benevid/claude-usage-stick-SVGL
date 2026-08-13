@@ -96,17 +96,58 @@ def save(im, nome):
     print(f"  {nome}  {im.width}x{im.height}")
 
 
+# ── textos ─────────────────────────────────────────────────────────────────
+# O desenho e um so; muda apenas o que esta escrito. Assim as duas versoes nao
+# divergem de layout com o tempo — e a razao de o texto viver aqui em cima.
+TEXTOS = {
+    "en": {
+        "sufixo": "",
+        "passos": [
+            ("01", "Buy the board", ["Guition JC4832W535 — ESP32-S3", "with a 3.5\" touch screen."]),
+            ("02", "Plug it into USB", ["An ordinary data cable.", "Nothing to install."]),
+            ("03", "Flash and set up", ["One click writes the firmware.", "WiFi, token and PIN on-screen."]),
+        ],
+        "rodape": "No arduino-cli, no repo clone, no compiling.",
+        "kicker": "No install needed",
+        "titulo": "Flash it from your browser.",
+        "corpo": [
+            "Short on time, or not comfortable with arduino-cli?",
+            "Plug the board into USB and flash it from Chrome in",
+            "about a minute. Small one-off fee per board.",
+        ],
+        "livre": "The firmware stays free and open — you can always flash it yourself.",
+        "gravando": "Writing the firmware…",
+        "nao_tire": "Do not unplug the board.",
+    },
+    "pt": {
+        "sufixo": "-pt",
+        "passos": [
+            ("01", "Compre a placa", ["Guition JC4832W535 — ESP32-S3", "com tela touch de 3,5\"."]),
+            ("02", "Conecte no USB", ["Um cabo de dados comum.", "Nada para instalar."]),
+            ("03", "Grave e configure", ["Um clique grava o firmware.", "WiFi, token e PIN na tela."]),
+        ],
+        "rodape": "Sem arduino-cli, sem clonar o repositório, sem compilar.",
+        "kicker": "Nada para instalar",
+        "titulo": "Grave pelo navegador.",
+        "corpo": [
+            "Sem tempo, ou sem vontade de lidar com o arduino-cli?",
+            "Conecte a placa no USB e grave pelo Chrome em",
+            "cerca de um minuto. Cobrança única por placa.",
+        ],
+        "livre": "O firmware continua livre e aberto — você sempre pode gravar sozinho.",
+        "gravando": "Gravando o firmware…",
+        "nao_tire": "Não desconecte a placa.",
+    },
+}
+
+
 # ── banner 1: os tres passos ────────────────────────────────────────────────
-def banner_steps():
+def banner_steps(t):
     W, H = 800, 196
     im, d = canvas(W, H)
     RODAPE = H - 50  # a regua do rodape; as reguas das colunas param nela
 
-    passos = [
-        ("01", "Buy the board", ["Guition JC4832W535 — ESP32-S3", "with a 3.5\" touch screen."]),
-        ("02", "Plug it into USB", ["An ordinary data cable.", "Nothing to install."]),
-        ("03", "Flash and set up", ["One click writes the firmware.", "WiFi, token and PIN on-screen."]),
-    ]
+    passos = t["passos"]
 
     col = W // 3
     for i, (n, titulo, linhas) in enumerate(passos):
@@ -123,14 +164,13 @@ def banner_steps():
     d.line([34 * S, RODAPE * S, (W - 34) * S, RODAPE * S], fill=RULE, width=1 * S)
     marca = clawd(15 * S)
     im.paste(marca, (34 * S, (RODAPE + 16) * S), marca)
-    d.text((56 * S, (RODAPE + 15) * S), "No arduino-cli, no repo clone, no compiling.",
-           font=sans(12 * S), fill=INK_FAINT)
+    d.text((56 * S, (RODAPE + 15) * S), t["rodape"], font=sans(12 * S), fill=INK_FAINT)
 
-    save(im, "banner-steps.png")
+    save(im, f"banner-steps{t['sufixo']}.png")
 
 
 # ── banner 2: o gravador web ────────────────────────────────────────────────
-def janela_navegador(im, d, x, y, w, h):
+def janela_navegador(im, d, t, x, y, w, h):
     """Janela de navegador com a barra de endereco e a gravacao em andamento."""
     d.rounded_rectangle([x * S, y * S, (x + w) * S, (y + h) * S], radius=9 * S,
                         fill=RAISED, outline=RULE_STRONG, width=1 * S)
@@ -148,34 +188,28 @@ def janela_navegador(im, d, x, y, w, h):
            font=mono(8 * S), fill=INK_MUTED)
 
     # conteudo: a gravacao acontecendo
-    d.text(((x + 16) * S, (y + 42) * S), "Writing the firmware…",
+    d.text(((x + 16) * S, (y + 42) * S), t["gravando"],
            font=sans(12 * S, bold=True), fill=INK)
     pct = 0.64
     bx0, bx1 = (x + 16) * S, (x + w - 16) * S
     by = (y + 64) * S
     d.rounded_rectangle([bx0, by, bx1, by + 7 * S], radius=4 * S, fill=SUNKEN)
     d.rounded_rectangle([bx0, by, bx0 + (bx1 - bx0) * pct, by + 7 * S], radius=4 * S, fill=CORAL)
-    d.text(((x + 16) * S, (y + 80) * S), "Do not unplug the board.",
+    d.text(((x + 16) * S, (y + 80) * S), t["nao_tire"],
            font=sans(9 * S), fill=INK_FAINT)
     d.text(((x + w - 16) * S, (y + 42) * S), "64%", font=mono(12 * S, bold=True),
            fill=CORAL_DEEP, anchor="ra")
 
 
-def banner_web():
+def banner_web(t):
     W, H = 800, 270
     im, d = canvas(W, H)
 
     x = 40
-    kicker(d, x * S, 38 * S, "No install needed")
-    d.text((x * S, 60 * S), "Flash it from your browser.",
-           font=sans(27 * S, bold=True), fill=INK)
+    kicker(d, x * S, 38 * S, t["kicker"])
+    d.text((x * S, 60 * S), t["titulo"], font=sans(27 * S, bold=True), fill=INK)
 
-    corpo = [
-        "Short on time, or not comfortable with arduino-cli?",
-        "Plug the board into USB and flash it from Chrome in",
-        "about a minute. Small one-off fee per board.",
-    ]
-    for i, ln in enumerate(corpo):
+    for i, ln in enumerate(t["corpo"]):
         d.text((x * S, (100 + i * 19) * S), ln, font=sans(13 * S), fill=INK_MUTED)
 
     # a URL, tratada como o elemento que a pessoa deve levar embora
@@ -185,17 +219,18 @@ def banner_web():
            font=mono(12 * S, bold=True), fill=CORAL_DEEP)
 
     # o essencial, e o que mais importa dizer
-    d.text((x * S, 214 * S), "The firmware stays free and open — you can always flash it yourself.",
-           font=sans(11 * S), fill=INK_FAINT)
+    d.text((x * S, 214 * S), t["livre"], font=sans(11 * S), fill=INK_FAINT)
 
-    janela_navegador(im, d, 452, 72, 308, 126)
-    save(im, "banner-web.png")
+    janela_navegador(im, d, t, 452, 72, 308, 126)
+    save(im, f"banner-web{t['sufixo']}.png")
 
 
 def main():
     print("gerando banners:")
-    banner_steps()
-    banner_web()
+    for lang, t in TEXTOS.items():
+        print(f" [{lang}]")
+        banner_steps(t)
+        banner_web(t)
 
 
 if __name__ == "__main__":

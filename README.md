@@ -7,6 +7,8 @@
 **Your Claude Code rate limits, live on a 3.5" touch screen.**<br>
 No computer. No app. No cloud.
 
+**English** · [Português](README.pt-BR.md)
+
 <img src="https://img.shields.io/badge/firmware-v2.2-D97757?style=for-the-badge" alt="firmware v2.2">
 <img src="https://img.shields.io/badge/ESP32--S3-AXS15231B%20480×320-1A1A20?style=for-the-badge" alt="ESP32-S3 AXS15231B">
 <img src="https://img.shields.io/badge/LVGL-9.2.2-4ADE80?style=for-the-badge" alt="LVGL 9.2.2">
