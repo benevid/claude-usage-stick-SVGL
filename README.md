@@ -263,6 +263,35 @@ negligible**.
 
 > The token is typed **once** (via the web, see below) and stored **encrypted** on the device.
 
+### 🚨 Read this before using a subscription token
+
+**Anthropic does not permit subscription OAuth tokens in third-party tools.** In a policy
+formalised on **4 April 2026**, Anthropic stated that Free/Pro/Max OAuth — the credential
+`claude setup-token` produces — is intended **only** for Claude Code and claude.ai, and that using
+it in any other product, tool or service violates the Consumer Terms. Server-side enforcement was
+reported from January 2026.
+
+This firmware is a third-party tool, and the workaround described just above — impersonating the
+Claude Code client through its headers and User-Agent — is precisely the pattern that policy
+addresses.
+
+**What that means in practice:**
+
+- It **works today**. A board was flashed in August 2026 and shows real data. But *working* is not
+  *permitted*.
+- The exposure is on **your account**, not the project's. Public reports of enforcement include
+  authentication failures and account disruption.
+- Anthropic may change the API or block the pattern at any time, and the device would simply stop
+  showing numbers.
+
+This project is not affiliated with Anthropic and cannot speak for them. It is published so people
+can build it, read the code, and decide for themselves. **If you are not willing to accept that
+risk on your own account, do not use a subscription token with this firmware.**
+
+Sources, gathered 13 Aug 2026:
+[The Register](https://www.theregister.com/2026/02/20/anthropic_clarifies_ban_third_party_claude_access/) ·
+[WinBuzzer](https://winbuzzer.com/2026/02/19/anthropic-bans-claude-subscription-oauth-in-third-party-apps-xcxwbn/)
+
 ---
 
 ## Build & flash
