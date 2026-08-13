@@ -29,6 +29,35 @@ heatmap, reset clocks, and **up to 4 accounts** you can switch between on-screen
 
 ---
 
+## Getting one running
+
+<img src="assets/banner-steps.png" width="100%" alt="Three steps: buy the board, plug it into USB, flash and set up">
+
+Everything you need is in this repository: the firmware source, the exact board, the pin map and
+the build commands. Flashing it yourself with `arduino-cli` is documented in
+[Build & flash](#build--flash) and **costs nothing**.
+
+### Don't want to install a toolchain?
+
+<a href="https://usagestick.autom.my"><img src="assets/banner-web.png" width="100%" alt="Flash it from your browser at usagestick.autom.my"></a>
+
+If you're short on time — or simply don't want to deal with `arduino-cli`, board packages and
+libraries — there's a hosted flasher at **[usagestick.autom.my](https://usagestick.autom.my)**.
+Create an account, plug the board into USB, and Chrome writes the firmware straight to it over Web
+Serial. It takes about a minute and installs nothing on your machine.
+
+That service charges a **small one-off fee per board**, which pays for hosting and for building the
+convenience. To be explicit about what is being sold:
+
+- **You are not paying for the firmware.** It is open source, it is right here, and you can build
+  and flash it for free, forever, without an account.
+- The fee covers **the convenience** of doing it from a browser. It is entirely optional.
+- One payment covers **one board, for good** — including future firmware versions on that board.
+
+If you're comfortable with a terminal, skip it and use [Build & flash](#build--flash).
+
+---
+
 ## Screens
 
 > The images below are **pixel-accurate mockups** rendered from the firmware's own layout and
@@ -296,6 +325,11 @@ Sources, gathered 13 Aug 2026:
 
 ## Build & flash
 
+> Rather not set any of this up? [usagestick.autom.my](https://usagestick.autom.my) flashes the
+> board from Chrome, with nothing to install — see
+> [Don't want to install a toolchain?](#dont-want-to-install-a-toolchain). The route below is the
+> free one and always will be.
+
 Prerequisites (tested versions):
 
 - `arduino-cli` 1.4.x · core `esp32:esp32` **3.3.11**
@@ -418,8 +452,13 @@ firmware/
   bringup/                      # validated bring-up (hardware reference)
     build.sh                    # its own FQBN — see Build & flash
   REFERENCIA-HARDWARE-LVGL.md   # display/colors/touch that work
-assets/                         # mockups das telas + assets de marca (brand/)
-3D Case/                        # case imprimível (STL) para a placa
+tools/
+  token_bridge.py               # pushes local token counts to the device
+  gen_logo_assets.py            # brand SVGs -> logo_assets.h
+  gen_mockups.py                # regenerates assets/mock-*.png (the screens)
+  gen_banners.py                # regenerates assets/banner-*.png (README banners)
+assets/                         # screen mockups, README banners + brand assets (brand/)
+3D Case/                        # printable case (STL) for the board
 ```
 
 ## Where to tweak
