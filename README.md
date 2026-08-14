@@ -177,10 +177,14 @@ which one you are looking at.
 
 | | |
 |---|---|
-| Screen | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://pt.aliexpress.com/item/1005007641039070.html)) |
+| Screen | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://s.click.aliexpress.com/e/_c3QK1l1z)) |
 | Chip | ESP32-S3 (native USB) |
 | Display | **AXS15231B**, QSPI interface |
 | Touch | **AXS15231B** capacitive, I²C `0x3B` |
+
+> **Heads-up:** the AliExpress link above is an affiliate link. It costs you nothing extra, and the
+> small commission goes straight back into keeping this project alive and updated. Buying the board
+> through it is an easy way to support the work — thank you!
 
 > **OPI PSRAM is mandatory** — the 480×320 LVGL buffer doesn't fit in internal RAM.
 
