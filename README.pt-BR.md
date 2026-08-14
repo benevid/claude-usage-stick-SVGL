@@ -182,7 +182,7 @@ saber qual está vendo.
 
 | | |
 |---|---|
-| Tela | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://s.click.aliexpress.com/e/_c3QK1l1z)) |
+| Tela | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://s.click.aliexpress.com/e/_c4T3hoZp)) |
 | Chip | ESP32-S3 (USB nativo) |
 | Display | **AXS15231B**, interface QSPI |
 | Touch | **AXS15231B** capacitivo, I²C `0x3B` |

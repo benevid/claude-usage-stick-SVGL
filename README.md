@@ -177,7 +177,7 @@ which one you are looking at.
 
 | | |
 |---|---|
-| Screen | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://s.click.aliexpress.com/e/_c3QK1l1z)) |
+| Screen | **Mini ESP32-S3 3.5" Capacitive Touch IPS · 480×320 · 8 MB PSRAM · 16 MB Flash** ([AliExpress](https://s.click.aliexpress.com/e/_c4T3hoZp)) |
 | Chip | ESP32-S3 (native USB) |
 | Display | **AXS15231B**, QSPI interface |
 | Touch | **AXS15231B** capacitive, I²C `0x3B` |
