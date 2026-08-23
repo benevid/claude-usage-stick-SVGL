@@ -247,6 +247,44 @@ python3 tools/token_bridge.py --loop 120    # continua enviando a cada 2 min
 O device se anuncia por mDNS como **`claude-stick.local`** enquanto o painel está aberto. Se a
 linha sumir, é porque o dado ficou velho (> 15 min sem envio).
 
+#### Mantendo rodando via hook do Claude Code (alternativa ao cron)
+
+Se o seu uso principal da ponte é com o **Claude Code CLI**, não precisa de um cron do sistema: um
+hook `SessionStart` pode iniciar ela sozinha toda vez que você abre uma sessão de terminal — e só
+enquanto você está de fato trabalhando, sem ficar batendo no device o dia todo à toa.
+
+O [`tools/claude-code-token-bridge-hook.sh`](tools/claude-code-token-bridge-hook.sh) é um helper
+pronto que verifica (via `pgrep`) se a ponte já está rodando antes de iniciar, então abrir várias
+abas/sessões de terminal nunca duplica o loop. Basta ligar ele no `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /caminho/absoluto/para/claude-usage-stick-SVGL/tools/claude-code-token-bridge-hook.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Para várias contas, defina `CLAUDE_STICK_BRIDGE_ACCOUNT` com o rótulo configurado no device antes
+do Claude Code iniciar (por exemplo no seu perfil do shell) — mesma ideia da flag `--account` acima.
+
+> **Não embuta a lógica do `pgrep`/`nohup` direto na string `command` do hook.** O processo que
+> executa o comando do hook carrega, no seu próprio argv, o texto de busca (já que ele faz parte
+> do próprio comando) — e o `pgrep -f` pode acabar encontrando a si mesmo intermitentemente em vez
+> do processo real da ponte, deixando de iniciá-la sem avisar nada. Manter a lógica num arquivo de
+> script separado evita isso, já que a invocação do script
+> (`bash .../claude-code-token-bridge-hook.sh`) não contém o padrão sendo buscado.
+
 Com várias contas, rode uma ponte por máquina com `--account <rótulo>` (o rótulo configurado no
 gadget). O `GET /window` informa qual conta está ativa; um envio para outra conta recebe `409` e é
 simplesmente ignorado até aquela conta voltar a ser a ativa.
