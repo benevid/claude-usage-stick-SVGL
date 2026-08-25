@@ -193,7 +193,7 @@ saber qual está vendo.
 
 > **No Brasil?** Fornecedor local entrega em dias, não em semanas. A [Fikra](https://fikra.com.br/esp32/) trabalha com essa
 > placa — o estoque é limitado, então ela pode aparecer como indisponível — e, para quem quer
-> agilidade na entrega, tem também este [anúncio no Mercado Livre](https://www.mercadolivre.com.br/p/MLB2106117288?matt_tool=38524122&pdp_filters=item_id:MLB6699817122&ua=bBsoG80g4HEglNc78-pzEt5O2nbQvZu32dAWwxTeFM7_pBdr#origin=share&sid=share&wid=MLB6699817122&action=copy).
+> agilidade na entrega, tem também este [anúncio no Mercado Livre](https://www.mercadolivre.com.br/esp32s3-bluetooth-wifi-display-35--usbc/up/MLBU4794234738?pdp_filters=item_id:MLB7440999938#polycard_client=recommendations_pdp-pads-up&wid=MLB7440999938&sid=recos&reco_backend=recomm_platform_base_pads_rfa_MERGE&reco_model=search_recos_backend_merge&reco_client=pdp-pads-up&reco_item_pos=0&reco_backend_type=low_level&reco_id=2053a0e7-9f25-48b8-93ed-e95bbcd32cdf&is_advertising=true&ad_domain=PDPDESKTOP_UP&ad_position=1&ad_click_id=Mzc5MGI5MDctNTU0Yy00MDQ0LWEzMTItMmRjZGZkMjc2MWM0).
 
 > **PSRAM OPI é obrigatória** — o buffer LVGL de 480×320 não cabe na RAM interna.
 
