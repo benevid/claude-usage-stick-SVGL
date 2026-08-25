@@ -186,6 +186,10 @@ which one you are looking at.
 > small commission goes straight back into keeping this project alive and updated. Buying the board
 > through it is an easy way to support the work — thank you!
 
+> **In Brazil?** Local sellers ship in days instead of weeks. [Fikra](https://fikra.com.br/esp32/) stocks this board —
+> stock is limited, so it may show up as unavailable — and if you need it fast there is also this
+> [Mercado Livre listing](https://www.mercadolivre.com.br/p/MLB2106117288?matt_tool=38524122&pdp_filters=item_id:MLB6699817122&ua=bBsoG80g4HEglNc78-pzEt5O2nbQvZu32dAWwxTeFM7_pBdr#origin=share&sid=share&wid=MLB6699817122&action=copy).
+
 > **OPI PSRAM is mandatory** — the 480×320 LVGL buffer doesn't fit in internal RAM.
 
 Pins and the validated display/color/touch configuration are in

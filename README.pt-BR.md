@@ -191,6 +191,10 @@ saber qual está vendo.
 > comissão volta direto para manter este projeto vivo e atualizado. Comprar a placa por ele é uma
 > forma simples de contribuir — obrigado!
 
+> **No Brasil?** Fornecedor local entrega em dias, não em semanas. A [Fikra](https://fikra.com.br/esp32/) trabalha com essa
+> placa — o estoque é limitado, então ela pode aparecer como indisponível — e, para quem quer
+> agilidade na entrega, tem também este [anúncio no Mercado Livre](https://www.mercadolivre.com.br/p/MLB2106117288?matt_tool=38524122&pdp_filters=item_id:MLB6699817122&ua=bBsoG80g4HEglNc78-pzEt5O2nbQvZu32dAWwxTeFM7_pBdr#origin=share&sid=share&wid=MLB6699817122&action=copy).
+
 > **PSRAM OPI é obrigatória** — o buffer LVGL de 480×320 não cabe na RAM interna.
 
 Os pinos e a configuração validada de display/cores/touch estão em
