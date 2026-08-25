@@ -471,6 +471,7 @@ tools/
   gen_logo_assets.py            # SVGs da marca -> logo_assets.h
   gen_mockups.py                # regenera assets/mock-*.png (as telas)
   gen_banners.py                # regenera assets/banner-*.png (banners do README)
+  gen_social.py                 # regenera assets/social-preview*.png (cartao social do repo)
 assets/                         # mockups das telas, banners do README + marca (brand/)
 3D Case/                        # case imprimível (STL) para a placa
 ```
@@ -492,6 +493,16 @@ Fork do **Claude Usage Stick** original. O firmware desta versão foi reescrito 
 
 Por um tempo este projeto compilava em exatamente uma máquina no mundo — a minha. Obrigado a quem
 descobriu isso e corrigiu, e a quem ensinou um truque novo a ele:
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/oauramos"><img src="https://github.com/oauramos.png?size=100" width="72" height="72" alt="oauramos"><br><sub><b>@oauramos</b></sub></a><br><sub><i>projeto original</i></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/jzimath-lab"><img src="https://github.com/jzimath-lab.png?size=100" width="72" height="72" alt="jzimath-lab"><br><sub><b>@jzimath-lab</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/1">#1</a></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/renanravelli"><img src="https://github.com/renanravelli.png?size=100" width="72" height="72" alt="renanravelli"><br><sub><b>@renanravelli</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/2">#2</a></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/mpsd18"><img src="https://github.com/mpsd18.png?size=100" width="72" height="72" alt="mpsd18"><br><sub><b>@mpsd18</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/3">#3</a></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/ViniciusLoureiro67"><img src="https://github.com/ViniciusLoureiro67.png?size=100" width="72" height="72" alt="ViniciusLoureiro67"><br><sub><b>@ViniciusLoureiro67</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/4">#4</a></sub></td>
+  </tr>
+</table>
 
 - **[@jzimath-lab](https://github.com/jzimath-lab)** — [#1](https://github.com/benevid/claude-usage-stick-SVGL/pull/1),
   merged. Rastreou por que o firmware não compilava em lugar nenhum: o `#include <stdint.h>` do

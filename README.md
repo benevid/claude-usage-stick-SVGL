@@ -467,6 +467,7 @@ tools/
   gen_logo_assets.py            # brand SVGs -> logo_assets.h
   gen_mockups.py                # regenerates assets/mock-*.png (the screens)
   gen_banners.py                # regenerates assets/banner-*.png (README banners)
+  gen_social.py                 # regenerates assets/social-preview*.png (repo social card)
 assets/                         # screen mockups, README banners + brand assets (brand/)
 3D Case/                        # printable case (STL) for the board
 ```
@@ -488,6 +489,16 @@ ESP32-S3 480×320 LVGL screen. Not an official Anthropic product.
 
 For a while this project compiled on exactly one machine in the world — mine. Thanks to the people
 who found that and fixed it, and to the one who taught it a new trick:
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/oauramos"><img src="https://github.com/oauramos.png?size=100" width="72" height="72" alt="oauramos"><br><sub><b>@oauramos</b></sub></a><br><sub><i>original project</i></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/jzimath-lab"><img src="https://github.com/jzimath-lab.png?size=100" width="72" height="72" alt="jzimath-lab"><br><sub><b>@jzimath-lab</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/1">#1</a></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/renanravelli"><img src="https://github.com/renanravelli.png?size=100" width="72" height="72" alt="renanravelli"><br><sub><b>@renanravelli</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/2">#2</a></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/mpsd18"><img src="https://github.com/mpsd18.png?size=100" width="72" height="72" alt="mpsd18"><br><sub><b>@mpsd18</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/3">#3</a></sub></td>
+    <td align="center" valign="top" width="20%"><a href="https://github.com/ViniciusLoureiro67"><img src="https://github.com/ViniciusLoureiro67.png?size=100" width="72" height="72" alt="ViniciusLoureiro67"><br><sub><b>@ViniciusLoureiro67</b></sub></a><br><sub><a href="https://github.com/benevid/claude-usage-stick-SVGL/pull/4">#4</a></sub></td>
+  </tr>
+</table>
 
 - **[@jzimath-lab](https://github.com/jzimath-lab)** — [#1](https://github.com/benevid/claude-usage-stick-SVGL/pull/1),
   merged. Tracked down why the firmware would not build anywhere else: `lv_conf.h`'s
