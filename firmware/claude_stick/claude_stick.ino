@@ -874,6 +874,88 @@ static void ui_loading(const char *sub) {
   lv_obj_set_style_arc_width(spn, 4, LV_PART_INDICATOR);
 }
 
+// ---- Boot ----
+//
+// O boot nao passa por request_state(): quem desenha os estados e o loop(), e ele
+// so comeca depois que setup() retorna. Entre o fillScreen(preto) e esse primeiro
+// render havia LittleFS (que formata na primeira vez), a migracao do historico e o
+// autoConnect — bloqueante por ate 8s POR rede salva, 24s no pior caso — tudo com o
+// backlight ja aceso sobre uma tela preta. Quem acabou de gravar le isso como
+// travamento e desliga na tomada no meio do boot.
+static lv_obj_t *g_bootSub = nullptr;
+
+static void boot_splash(const char *sub) {
+  lv_obj_t *scr = lv_screen_active();
+  lv_obj_clean(scr);
+  lv_obj_set_style_bg_color(scr, lv_color_hex(C_BG), 0);
+  lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+
+  lv_obj_t *mark = build_claude_mark(scr);
+  lv_obj_align(mark, LV_ALIGN_CENTER, 0, -50);
+  lv_obj_t *t = mklabel(scr, "Claude Usage Stick", &lv_font_montserrat_18, C_TEXT);
+  lv_obj_align(t, LV_ALIGN_CENTER, 0, 28);
+  g_bootSub = mklabel(scr, sub ? sub : "", &lv_font_montserrat_12, C_MUTED);
+  lv_obj_align(g_bootSub, LV_ALIGN_CENTER, 0, 52);
+
+  lv_obj_t *spn = lv_spinner_create(scr);
+  lv_spinner_set_anim_params(spn, 1200, 70);
+  lv_obj_set_size(spn, 34, 34);
+  lv_obj_align(spn, LV_ALIGN_CENTER, 0, 90);
+  lv_obj_set_style_arc_color(spn, lv_color_hex(C_SURFACE2), LV_PART_MAIN);
+  lv_obj_set_style_arc_color(spn, lv_color_hex(C_ACCENT), LV_PART_INDICATOR);
+  lv_obj_set_style_arc_width(spn, 4, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(spn, 4, LV_PART_INDICATOR);
+
+  lv_task_handler();
+  lv_refr_now(NULL);                       // o loop() ainda nao roda: forca o desenho
+}
+
+static void boot_status(const char *sub) {
+  if (!g_bootSub) return;
+  lv_label_set_text(g_bootSub, sub);
+  lv_task_handler();
+  lv_refr_now(NULL);
+}
+
+// Passado ao autoConnect: mantem o spinner girando e diz qual rede esta sendo
+// tentada. So redesenha quando o texto muda — a cada 100ms um refresh completo
+// de 320x480 competiria com o proprio WiFi.
+static void boot_wifi_tick(const char *ssid, int idx, int total) {
+  static char ultimo[64] = "";
+  char s[64];
+  if (total > 1) snprintf(s, sizeof(s), "%s (%d/%d)", ssid, idx, total);
+  else           snprintf(s, sizeof(s), "%s", ssid);
+  if (g_bootSub && strcmp(s, ultimo) != 0) {
+    snprintf(ultimo, sizeof(ultimo), "%s", s);
+    lv_label_set_text(g_bootSub, s);
+  }
+  lv_task_handler();
+}
+
+// Falha antes do LVGL existir: desenha direto no Arduino_GFX. Tambem acende o
+// backlight, que fica em duty 0 desde o ledcAttach ate apply_brightness() — sem
+// isso a mensagem seria escrita numa tela apagada, indistinguivel de placa morta.
+static void fatal_screen(const char *msg) {
+  if (gfx) {
+    ledcWrite(TFT_BL, 200);
+    gfx->fillScreen(0x0000);
+    gfx->setTextColor(0xDBAA);             // C_ACCENT em RGB565
+    gfx->setTextSize(2);
+    gfx->setCursor(14, 190);
+    gfx->println("FALHA AO INICIAR");
+    gfx->setTextColor(0xFFFF);
+    gfx->setTextSize(1);
+    gfx->setCursor(14, 226);
+    gfx->println(msg);
+    gfx->setCursor(14, 248);
+    gfx->println("Desligue e ligue a placa.");
+    gfx->setCursor(14, 262);
+    gfx->println("Se continuar, regrave o firmware.");
+    gfx->flush();
+  }
+  while (1) delay(1000);
+}
+
 // ============================================================
 // Histórico / heatmap
 // ============================================================
@@ -2509,7 +2591,7 @@ void setup() {
   lv_tick_set_cb([]() -> uint32_t { return millis(); });
   uint32_t bufSize = SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(lv_color_t);
   lv_color_t *buf = (lv_color_t *)heap_caps_malloc(bufSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-  if (!buf) { Serial.println("FATAL PSRAM"); while (1) delay(1000); }
+  if (!buf) { Serial.println("FATAL PSRAM"); fatal_screen("PSRAM indisponivel"); }
   lv_display_t *disp = lv_display_create(SCREEN_WIDTH, SCREEN_HEIGHT);
   lv_display_set_flush_cb(disp, disp_flush_cb);
   lv_display_set_buffers(disp, buf, NULL, bufSize, LV_DISPLAY_RENDER_MODE_FULL);
@@ -2519,6 +2601,7 @@ void setup() {
 
   load_persisted();
   apply_brightness();
+  boot_splash(TRS("Iniciando...", "Starting..."));
 
   if (!LittleFS.begin(true)) Serial.println("LittleFS: falhou");
   else {
@@ -2540,15 +2623,17 @@ void setup() {
 
   g_wifi.begin();
 
+  boot_status(TRS("Conectando ao WiFi...", "Connecting to WiFi..."));
   if (g_hasToken) {
     // Tenta WiFi cedo (em paralelo o usuário digita o PIN)
-    g_wifi.autoConnect(WIFI_CONNECT_TIMEOUT_MS);
+    g_wifi.autoConnect(WIFI_CONNECT_TIMEOUT_MS, boot_wifi_tick);
     request_state(ST_PIN);
   } else {
     g_onboarding = true;
     // Se já há WiFi salvo (reboot no meio do onboarding), pula direto p/ o token
-    request_state(g_wifi.autoConnect(WIFI_CONNECT_TIMEOUT_MS) ? ST_TOKEN : ST_WIFI);
+    request_state(g_wifi.autoConnect(WIFI_CONNECT_TIMEOUT_MS, boot_wifi_tick) ? ST_TOKEN : ST_WIFI);
   }
+  g_bootSub = nullptr;                     // render_state() destroi a tela de boot
 }
 
 void loop() {

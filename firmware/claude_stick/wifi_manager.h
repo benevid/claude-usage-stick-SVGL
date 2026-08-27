@@ -24,14 +24,21 @@ public:
         return true;
     }
 
-    // Tenta cada rede salva até uma conectar
-    bool autoConnect(int timeout_ms = 10000) {
+    // Tenta cada rede salva até uma conectar.
+    //
+    // `tick` e chamado durante a espera, a cada ~100ms, com a rede da vez. Existe
+    // porque esta funcao bloqueia por ate timeout_ms POR REDE — com as 3 salvas do
+    // MAX_SAVED_NETWORKS sao 24s — e quem chama no boot precisa de alguem bombeando
+    // o LVGL nesse intervalo, senao a tela fica congelada ate o loop() comecar.
+    bool autoConnect(int timeout_ms = 10000,
+                     void (*tick)(const char *ssid, int idx, int total) = nullptr) {
         for (int i = 0; i < _count; i++) {
             Serial.printf("WiFi: trying '%s' (%d/%d)...\n", _nets[i].ssid, i + 1, _count);
             WiFi.begin(_nets[i].ssid, _nets[i].pass);
 
             unsigned long start = millis();
             while (WiFi.status() != WL_CONNECTED && millis() - start < (unsigned long)timeout_ms) {
+                if (tick) tick(_nets[i].ssid, i + 1, _count);
                 delay(100);
             }
             if (WiFi.status() == WL_CONNECTED) {
