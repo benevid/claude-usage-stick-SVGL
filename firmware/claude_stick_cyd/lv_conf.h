@@ -36,10 +36,9 @@
 #define LV_USE_STDLIB_STRING   LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_SPRINTF  LV_STDLIB_BUILTIN
 // Reduzido de 96KB (placa S3, 512KB DRAM): a ESP32 comum desta placa tem
-// so ~320KB de DRAM total, sem PSRAM, disputado com a pilha de WiFi/TLS.
-// 32KB estourava esse pool ao montar o dashboard completo (varios cards +
-// grafico + barras): lv_mem_alloc() falhava e o assert padrao do LVGL
-// trava num while(1) silencioso (sem panic, sem reset — parecia "travado").
+// so ~320KB de DRAM, sem PSRAM, disputado com a pilha de WiFi/TLS. Pool
+// pequeno demais faz lv_mem_alloc() falhar e o assert do LVGL trava num
+// while(1) silencioso (sem panic/reset) ao montar o dashboard completo.
 #define LV_MEM_SIZE            (48 * 1024U)
 
 /*====================

@@ -1733,6 +1733,7 @@ static void check_thresholds() {
   g_thrBase = true;
 }
 
+#define MOMENT_BOX_X ((SCREEN_WIDTH - 176) / 2)
 static void moment_close() {
   if (!g_mo.scrim) return;
   lv_obj_delete(g_mo.scrim);
@@ -1749,7 +1750,7 @@ static void show_moment(int win, int thr) {
 
   lv_obj_t *s = lv_obj_create(lv_layer_top());
   g_mo.scrim = s;
-  lv_obj_set_pos(s, 0, 0); lv_obj_set_size(s, 480, 320);
+  lv_obj_set_pos(s, 0, 0); lv_obj_set_size(s, SCREEN_WIDTH, SCREEN_HEIGHT);
   lv_obj_set_style_bg_color(s, lv_color_hex(0x0D0D10), 0);
   lv_obj_set_style_bg_opa(s, 248, 0);
   lv_obj_set_style_border_width(s, 0, 0);
@@ -1762,7 +1763,7 @@ static void show_moment(int win, int thr) {
   // anel de alerta (só no 100%; pisca no tick)
   if (thr == 100) {
     g_mo.ring = lv_obj_create(s);
-    lv_obj_set_pos(g_mo.ring, 4, 4); lv_obj_set_size(g_mo.ring, 472, 312);
+    lv_obj_set_pos(g_mo.ring, 4, 4); lv_obj_set_size(g_mo.ring, SCREEN_WIDTH - 8, SCREEN_HEIGHT - 8);
     lv_obj_set_style_bg_opa(g_mo.ring, 0, 0);
     lv_obj_set_style_radius(g_mo.ring, 14, 0);
     lv_obj_set_style_border_width(g_mo.ring, 4, 0);
@@ -1772,10 +1773,11 @@ static void show_moment(int win, int thr) {
   }
 
   // caixa do Clawd (a caixa inteira anima: bounce / shake / queda de entrada)
-  g_mo.boxY = 110;
+  // empilhado (mascote em cima, texto embaixo): 320px nao cabe 2 colunas
+  g_mo.boxY = 6;
   lv_obj_t *bx = lv_obj_create(s);
   g_mo.box = bx;
-  lv_obj_set_pos(bx, 36, g_mo.boxY - 40);
+  lv_obj_set_pos(bx, MOMENT_BOX_X, g_mo.boxY - 40);
   lv_obj_set_size(bx, 176, 116);
   lv_obj_set_style_bg_opa(bx, 0, 0);
   lv_obj_set_style_border_width(bx, 0, 0);
@@ -1821,12 +1823,22 @@ static void show_moment(int win, int thr) {
     }
   }
 
-  // coluna de texto à direita
+  // texto embaixo do mascote (empilhado, tudo centralizado)
   lv_obj_t *win_l = mklabel(s, win == 0 ? TRS("JANELA DE 5 HORAS", "5-HOUR WINDOW")
                                         : TRS("JANELA SEMANAL", "WEEKLY WINDOW"),
-                            &lv_font_montserrat_20, C_MUTED);
-  lv_obj_set_pos(win_l, 240, 42);
-  g_mo.pct = tlabel(s, &lv_font_montserrat_48, C_OK, 240, 70);
+                            &lv_font_montserrat_12, C_MUTED);
+  lv_obj_set_width(win_l, SCREEN_WIDTH);
+  lv_obj_set_style_text_align(win_l, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_pos(win_l, 0, 124);
+
+  g_mo.pct = tlabel(s, &lv_font_montserrat_24, C_OK, 0, 138);
+  lv_obj_set_width(g_mo.pct, SCREEN_WIDTH);
+  lv_obj_set_style_text_align(g_mo.pct, LV_TEXT_ALIGN_CENTER, 0);
+
+  int meterX0 = (SCREEN_WIDTH - (NSEG * 6 - 2)) / 2;
+  for (int i = 0; i < NSEG; i++)
+    g_mo.seg[i] = rrect(s, meterX0 + i * 6, 168, 4, 11, 1, C_TRACK);
+
   const char *MSG[4] = {
     TRS("Comecando \xE2\x80\xA2 ritmo tranquilo",       "Just starting \xE2\x80\xA2 easy pace"),
     TRS("Metade da janela usada",                       "Half the window used"),
@@ -1834,22 +1846,22 @@ static void show_moment(int win, int thr) {
     TRS("Limite atingido \xE2\x80\xA2 aguarde o reset", "Limit reached \xE2\x80\xA2 wait for the reset"),
   };
   int mi = (thr == 25) ? 0 : (thr == 50) ? 1 : (thr == 70) ? 2 : 3;
-  lv_obj_t *msg = mklabel(s, MSG[mi], &lv_font_montserrat_16, C_TEXT);
-  lv_obj_set_pos(msg, 240, 148);
-  lv_obj_set_width(msg, 232);
+  lv_obj_t *msg = mklabel(s, MSG[mi], &lv_font_montserrat_12, C_TEXT);
+  lv_obj_set_pos(msg, 12, 184);
+  lv_obj_set_width(msg, SCREEN_WIDTH - 24);
+  lv_obj_set_style_text_align(msg, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(msg, LV_LABEL_LONG_WRAP);
-
-  for (int i = 0; i < NSEG; i++)
-    g_mo.seg[i] = rrect(s, 240 + i * 11, 196, 8, 16, 2, C_TRACK);
 
   char e[32], b[48];
   fmt_eta(win == 0 ? g_usage.h5ResetEpoch : g_usage.d7ResetEpoch, e, sizeof(e));
   snprintf(b, sizeof(b), TRS("reseta em %s", "resets in %s"), e);
-  lv_obj_t *eta = mklabel(s, b, &lv_font_montserrat_14, C_FAINT);
-  lv_obj_set_pos(eta, 240, 228);
+  lv_obj_t *eta = mklabel(s, b, &lv_font_montserrat_12, C_FAINT);
+  lv_obj_set_width(eta, SCREEN_WIDTH);
+  lv_obj_set_style_text_align(eta, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_pos(eta, 0, 214);
 
   lv_obj_t *hint = mklabel(s, TRS("toque para fechar", "tap to close"), &lv_font_montserrat_12, C_FAINT);
-  lv_obj_set_pos(hint, 352, 296);
+  lv_obj_align(hint, LV_ALIGN_BOTTOM_RIGHT, -6, -4);
 }
 
 // Anima o momento (chamado a cada frame do loop enquanto o overlay existe).
@@ -1858,14 +1870,14 @@ static void moment_tick() {
   uint32_t t = millis() - g_mo.t0;
 
   // entrada: Clawd cai de cima com acomodação; depois o humor manda
-  int y = g_mo.boxY, x = 36;
+  int y = g_mo.boxY, x = MOMENT_BOX_X;
   if (t < 450) {
     float p = t / 450.0f;
     y = g_mo.boxY - (int)((1.0f - p) * (1.0f - p) * 60.0f);
   } else if (g_mo.thr == 25 || g_mo.thr == 50) {
     y = g_mo.boxY + (int)(4.0f * sinf((t - 450) / 260.0f));           // bounce feliz
   } else if (g_mo.thr == 70) {
-    x = 36 + (((t / 70) % 2) ? 2 : -2);                                // treme
+    x = MOMENT_BOX_X + (((t / 70) % 2) ? 2 : -2);                     // treme
   } else if (g_mo.thr == 100) {
     y = g_mo.boxY + 6;                                                 // caído
   }
@@ -2003,8 +2015,7 @@ static void ui_main() {
   lv_obj_align(gear, LV_ALIGN_TOP_RIGHT, -4, 4);
   lv_obj_add_event_cb(gear, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_SETTINGS);
 
-  // Segunda linha do cabecalho: status do fetch + badge da conta (se houver
-  // mais de uma). Ficou apertado demais pra caber ao lado dos botoes.
+  // 2a linha: status do fetch + badge da conta (nao cabe ao lado dos botoes)
   g_hdrStatus = mklabel(scr, "", &lv_font_montserrat_12, C_MUTED);
   lv_obj_align(g_hdrStatus, LV_ALIGN_TOP_LEFT, 8, 34);
 
@@ -2159,11 +2170,11 @@ static void settings_action_cb(lv_event_t *e) {
 }
 static void add_setting_row(lv_obj_t *p, const char *txt, int act, uint32_t fg, lv_obj_t **out) {
   lv_obj_t *b = lv_button_create(p);
-  lv_obj_set_size(b, 444, 44);
+  lv_obj_set_size(b, 284, 44);
   lv_obj_set_style_bg_color(b, lv_color_hex(C_SURFACE), 0);
   lv_obj_set_style_radius(b, 12, 0);
   lv_obj_set_style_shadow_width(b, 0, 0);
-  lv_obj_t *l = mklabel(b, txt, &lv_font_montserrat_16, fg);
+  lv_obj_t *l = mklabel(b, txt, &lv_font_montserrat_14, fg);
   lv_obj_align(l, LV_ALIGN_LEFT_MID, 8, 0);
   lv_obj_add_event_cb(b, settings_action_cb, LV_EVENT_CLICKED, (void *)(intptr_t)act);
   if (out) *out = l;
@@ -2172,20 +2183,20 @@ static void ui_settings() {
   lv_obj_t *scr = lv_screen_active();
   g_wipeArmed = false;
   start_data_web();
-  lv_obj_t *title = mklabel(scr, TRS("Ajustes", "Settings"), &lv_font_montserrat_20, C_TEXT);
-  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 14, 10);
+  lv_obj_t *title = mklabel(scr, TRS("Ajustes", "Settings"), &lv_font_montserrat_16, C_TEXT);
+  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 8, 8);
 
   lv_obj_t *bk = mkbtn(scr, TRS(LV_SYMBOL_LEFT " Voltar", LV_SYMBOL_LEFT " Back"),
-                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
-  lv_obj_set_size(bk, 100, 32);
+                       &lv_font_montserrat_12, C_SURFACE2, C_MUTED);
+  lv_obj_set_size(bk, 86, 28);
   lv_obj_set_ext_click_area(bk, 6);
-  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -12, 6);
+  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -6, 6);
   lv_obj_add_event_cb(bk, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)(g_usage.ok ? ST_MAIN : ST_SETTINGS));
 
   // lista rolável
   lv_obj_t *lst = lv_obj_create(scr);
-  lv_obj_set_pos(lst, 8, 44);
-  lv_obj_set_size(lst, 464, 268);
+  lv_obj_set_pos(lst, 8, 40);
+  lv_obj_set_size(lst, 304, 194);
   lv_obj_set_style_bg_opa(lst, 0, 0);
   lv_obj_set_style_border_width(lst, 0, 0);
   lv_obj_set_style_pad_all(lst, 0, 0);
@@ -2302,14 +2313,14 @@ static void ui_account_name() {
   lv_obj_t *scr = lv_screen_active();
 
   lv_obj_t *title = mklabel(scr, TRS("Renomear conta", "Rename account"),
-                            &lv_font_montserrat_20, C_TEXT);
-  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 14, 10);
+                            &lv_font_montserrat_16, C_TEXT);
+  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 8, 8);
 
   lv_obj_t *bk = mkbtn(scr, TRS(LV_SYMBOL_LEFT " Voltar", LV_SYMBOL_LEFT " Back"),
-                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
-  lv_obj_set_size(bk, 100, 32);
+                       &lv_font_montserrat_12, C_SURFACE2, C_MUTED);
+  lv_obj_set_size(bk, 86, 28);
   lv_obj_set_ext_click_area(bk, 6);
-  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -12, 6);
+  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -6, 6);
   lv_obj_add_event_cb(bk, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_ACCOUNTS);
 
   g_nameTa = lv_textarea_create(scr);
@@ -2318,10 +2329,12 @@ static void ui_account_name() {
   lv_textarea_set_text(g_nameTa, g_accts.label[g_renameSlot]);
   lv_textarea_set_placeholder_text(g_nameTa, TRS("rotulo (ex.: Pessoal, Trabalho)",
                                                  "label (e.g. Personal, Work)"));
-  lv_obj_set_size(g_nameTa, 452, 44);
-  lv_obj_align(g_nameTa, LV_ALIGN_TOP_MID, 0, 52);
+  lv_obj_set_size(g_nameTa, 304, 40);
+  lv_obj_align(g_nameTa, LV_ALIGN_TOP_MID, 0, 44);
 
   lv_obj_t *kb = lv_keyboard_create(scr);
+  lv_obj_set_size(kb, SCREEN_WIDTH, 138);
+  lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
   lv_keyboard_set_textarea(kb, g_nameTa);
   lv_obj_add_event_cb(kb, acct_name_kb_cb, LV_EVENT_ALL, NULL);
 }
@@ -2330,19 +2343,19 @@ static void ui_accounts() {
   lv_obj_t *scr = lv_screen_active();
   start_data_web();
 
-  lv_obj_t *title = mklabel(scr, TRS("Contas", "Accounts"), &lv_font_montserrat_20, C_TEXT);
-  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 14, 10);
+  lv_obj_t *title = mklabel(scr, TRS("Contas", "Accounts"), &lv_font_montserrat_16, C_TEXT);
+  lv_obj_align(title, LV_ALIGN_TOP_LEFT, 8, 8);
 
   lv_obj_t *bk = mkbtn(scr, TRS(LV_SYMBOL_LEFT " Voltar", LV_SYMBOL_LEFT " Back"),
-                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
-  lv_obj_set_size(bk, 100, 32);
+                       &lv_font_montserrat_12, C_SURFACE2, C_MUTED);
+  lv_obj_set_size(bk, 86, 28);
   lv_obj_set_ext_click_area(bk, 6);
-  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -12, 6);
+  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -6, 6);
   lv_obj_add_event_cb(bk, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_SETTINGS);
 
   lv_obj_t *lst = lv_obj_create(scr);
-  lv_obj_set_pos(lst, 8, 44);
-  lv_obj_set_size(lst, 464, 240);
+  lv_obj_set_pos(lst, 8, 40);
+  lv_obj_set_size(lst, 304, 166);
   lv_obj_set_style_bg_opa(lst, 0, 0);
   lv_obj_set_style_border_width(lst, 0, 0);
   lv_obj_set_style_pad_all(lst, 0, 0);
@@ -2357,11 +2370,11 @@ static void ui_accounts() {
     bool active = (i == g_accts.active);
 
     lv_obj_t *row = lv_obj_create(lst);
-    lv_obj_set_size(row, 444, 44);
+    lv_obj_set_size(row, 284, 44);
     no_box(row);
 
     lv_obj_t *b = lv_button_create(row);
-    lv_obj_set_size(b, canDelete ? 324 : 384, 44);
+    lv_obj_set_size(b, canDelete ? 196 : 240, 44);
     lv_obj_set_pos(b, 0, 0);
     lv_obj_set_style_bg_color(b, lv_color_hex(C_SURFACE), 0);
     lv_obj_set_style_radius(b, 12, 0);
@@ -2369,42 +2382,42 @@ static void ui_accounts() {
     char txt[40];
     snprintf(txt, sizeof(txt), "%s%s", g_accts.label[i],
              active ? TRS("  \xE2\x80\xA2  ativa", "  \xE2\x80\xA2  active") : "");
-    lv_obj_t *l = mklabel(b, txt, &lv_font_montserrat_16, active ? C_ACCENT : C_TEXT);
+    lv_obj_t *l = mklabel(b, txt, &lv_font_montserrat_14, active ? C_ACCENT : C_TEXT);
     lv_obj_align(l, LV_ALIGN_LEFT_MID, 8, 0);
     lv_obj_add_event_cb(b, acct_switch_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
 
     lv_obj_t *ed = lv_button_create(row);
-    lv_obj_set_size(ed, 52, 44);
-    lv_obj_set_pos(ed, canDelete ? 332 : 392, 0);
+    lv_obj_set_size(ed, 40, 44);
+    lv_obj_set_pos(ed, canDelete ? 200 : 244, 0);
     lv_obj_set_style_bg_color(ed, lv_color_hex(C_SURFACE2), 0);
     lv_obj_set_style_radius(ed, 12, 0);
     lv_obj_set_style_shadow_width(ed, 0, 0);
-    lv_obj_center(mklabel(ed, LV_SYMBOL_EDIT, &lv_font_montserrat_16, C_MUTED));
+    lv_obj_center(mklabel(ed, LV_SYMBOL_EDIT, &lv_font_montserrat_14, C_MUTED));
     lv_obj_add_event_cb(ed, acct_edit_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
 
     if (canDelete) {
       bool armed = (g_acctDelArmed == i);
       lv_obj_t *d = lv_button_create(row);
-      lv_obj_set_size(d, 52, 44);
-      lv_obj_set_pos(d, 392, 0);
+      lv_obj_set_size(d, 40, 44);
+      lv_obj_set_pos(d, 244, 0);
       lv_obj_set_style_bg_color(d, lv_color_hex(armed ? C_BAD : C_SURFACE2), 0);
       lv_obj_set_style_radius(d, 12, 0);
       lv_obj_set_style_shadow_width(d, 0, 0);
       lv_obj_center(mklabel(d, armed ? LV_SYMBOL_WARNING : LV_SYMBOL_TRASH,
-                            &lv_font_montserrat_16, armed ? C_BG : C_MUTED));
+                            &lv_font_montserrat_14, armed ? C_BG : C_MUTED));
       lv_obj_add_event_cb(d, acct_del_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
   }
 
   if (accountFirstFree(g_accts) >= 0) {
     lv_obj_t *add = lv_button_create(lst);
-    lv_obj_set_size(add, 444, 44);
+    lv_obj_set_size(add, 284, 44);
     lv_obj_set_style_bg_color(add, lv_color_hex(C_SURFACE2), 0);
     lv_obj_set_style_radius(add, 12, 0);
     lv_obj_set_style_shadow_width(add, 0, 0);
     lv_obj_t *al = mklabel(add, TRS(LV_SYMBOL_PLUS "  Adicionar conta",
                                     LV_SYMBOL_PLUS "  Add account"),
-                           &lv_font_montserrat_16, C_ACCENT);
+                           &lv_font_montserrat_14, C_ACCENT);
     lv_obj_align(al, LV_ALIGN_LEFT_MID, 8, 0);
     lv_obj_add_event_cb(add, acct_add_cb, LV_EVENT_CLICKED, NULL);
   }
@@ -2412,9 +2425,9 @@ static void ui_accounts() {
   lv_obj_t *hint = mklabel(scr, TRS("So a conta ativa e consultada na API (as outras ficam dormentes).",
                                     "Only the active account is polled (the others stay dormant)."),
                            &lv_font_montserrat_12, C_FAINT);
-  lv_obj_set_width(hint, 452);
+  lv_obj_set_width(hint, 304);
   lv_label_set_long_mode(hint, LV_LABEL_LONG_WRAP);
-  lv_obj_align(hint, LV_ALIGN_BOTTOM_LEFT, 14, -8);
+  lv_obj_align(hint, LV_ALIGN_BOTTOM_LEFT, 8, -4);
 }
 
 // ============================================================
@@ -2425,44 +2438,49 @@ static void ui_about() {
   start_data_web();
 
   lv_obj_t *bk = mkbtn(scr, TRS(LV_SYMBOL_LEFT " Voltar", LV_SYMBOL_LEFT " Back"),
-                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
-  lv_obj_set_size(bk, 100, 32);
+                       &lv_font_montserrat_12, C_SURFACE2, C_MUTED);
+  lv_obj_set_size(bk, 86, 28);
   lv_obj_set_ext_click_area(bk, 6);
-  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -12, 6);
+  lv_obj_align(bk, LV_ALIGN_TOP_RIGHT, -6, 6);
   lv_obj_add_event_cb(bk, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_SETTINGS);
 
-  lv_obj_t *mark = build_claude_mark(scr);
-  lv_obj_align(mark, LV_ALIGN_TOP_MID, 0, 0);
+  // nao cabe em pe (240px); rola como Ajustes/Contas, mas centralizado
+  lv_obj_t *lst = lv_obj_create(scr);
+  lv_obj_set_pos(lst, 0, 4);
+  lv_obj_set_size(lst, SCREEN_WIDTH, SCREEN_HEIGHT - 4);
+  lv_obj_set_style_bg_opa(lst, 0, 0);
+  lv_obj_set_style_border_width(lst, 0, 0);
+  lv_obj_set_style_pad_all(lst, 4, 0);
+  lv_obj_set_style_pad_row(lst, 4, 0);
+  lv_obj_set_flex_flow(lst, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(lst, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_scroll_dir(lst, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(lst, LV_SCROLLBAR_MODE_AUTO);
 
-  lv_obj_t *t = mklabel(scr, "Claude Usage Stick", &lv_font_montserrat_22, C_TEXT);
-  lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 94);
+  build_claude_mark(lst);
+
+  mklabel(lst, "Claude Usage Stick", &lv_font_montserrat_18, C_TEXT);
 
   char v[64];
-  snprintf(v, sizeof(v), "v" FW_VERSION " \xE2\x80\xA2 ESP32-S3 \xE2\x80\xA2 LVGL 9.2");
-  lv_obj_t *ver = mklabel(scr, v, &lv_font_montserrat_12, C_FAINT);
-  lv_obj_align(ver, LV_ALIGN_TOP_MID, 0, 122);
+  snprintf(v, sizeof(v), "v" FW_VERSION " \xE2\x80\xA2 ESP32 \xE2\x80\xA2 LVGL 9.2");
+  mklabel(lst, v, &lv_font_montserrat_12, C_FAINT);
 
-  lv_obj_t *d = mklabel(scr, TRS("Medidor de uso do Claude Code em tempo real: "
+  lv_obj_t *d = mklabel(lst, TRS("Medidor de uso do Claude Code em tempo real: "
                                  "janelas de 5h e semanal direto da API da Anthropic.",
                                  "Real-time Claude Code usage meter: "
                                  "5-hour and weekly windows straight from the Anthropic API."),
-                        &lv_font_montserrat_14, C_MUTED);
-  lv_obj_set_width(d, 420);
+                        &lv_font_montserrat_12, C_MUTED);
+  lv_obj_set_width(d, 280);
   lv_obj_set_style_text_align(d, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(d, LV_LABEL_LONG_WRAP);
-  lv_obj_align(d, LV_ALIGN_TOP_MID, 0, 146);
 
-  lv_obj_t *h = mklabel(scr, TRS("Tela: ESP32-2432S028 (CYD) \xE2\x80\xA2 2.8\" 320x240 touch (ILI9341)",
-                                 "Display: ESP32-2432S028 (CYD) \xE2\x80\xA2 2.8\" 320x240 touch (ILI9341)"),
-                        &lv_font_montserrat_12, C_FAINT);
-  lv_obj_align(h, LV_ALIGN_TOP_MID, 0, 200);
+  mklabel(lst, TRS("Tela: ESP32-2432S028 (CYD) \xE2\x80\xA2 2.8\" 320x240 touch (ILI9341)",
+                   "Display: ESP32-2432S028 (CYD) \xE2\x80\xA2 2.8\" 320x240 touch (ILI9341)"),
+          &lv_font_montserrat_12, C_FAINT);
 
-  lv_obj_t *devCap = mklabel(scr, TRS("Desenvolvido por", "Developed by"), &lv_font_montserrat_12, C_FAINT);
-  lv_obj_align(devCap, LV_ALIGN_TOP_MID, 0, 234);
-  lv_obj_t *dev = mklabel(scr, "Benevid Felix", &lv_font_montserrat_18, C_TEXT);
-  lv_obj_align(dev, LV_ALIGN_TOP_MID, 0, 254);
-  lv_obj_t *mail = mklabel(scr, "benevid@gmail.com", &lv_font_montserrat_14, C_ACCENT);
-  lv_obj_align(mail, LV_ALIGN_TOP_MID, 0, 282);
+  mklabel(lst, TRS("Desenvolvido por", "Developed by"), &lv_font_montserrat_12, C_FAINT);
+  mklabel(lst, "Benevid Felix", &lv_font_montserrat_16, C_TEXT);
+  mklabel(lst, "benevid@gmail.com", &lv_font_montserrat_12, C_ACCENT);
 }
 
 // ============================================================
@@ -2580,12 +2598,11 @@ void setup() {
   delay(300);
   Serial.println("\n=== Claude Usage Stick (touch) ===");
 
-  // Display (TFT_eSPI + touch XPT2046 — pipeline validado no bring-up)
+  // Display
   gfx.init();
   gfx.setRotation(TFT_ROTATION);
-  // LVGL entrega RGB565 numa ordem de bytes que a TFT_eSPI.pushPixels() so
-  // acerta com isto ligado (a propria TFT_eSPI, usada sozinha no bring-up,
-  // acertava a ordem por dentro; pushPixels() faz passagem crua).
+  // pushPixels() faz passagem crua do RGB565 do LVGL; sem isto sai com os
+  // bytes trocados (fillRect/drawString da própria TFT_eSPI acertam sozinhos).
   gfx.setSwapBytes(true);
   gfx.fillScreen(0x0000);
 

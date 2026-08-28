@@ -2,11 +2,8 @@
 #define CONFIG_H
 
 // ============================================================
-// Claude Usage Stick — ESP32-2432S028 ("Cheap Yellow Display" / CYD)
-// Port do firmware original (Guition JC4832W535, ESP32-S3) pra esta
-// placa: ESP32 comum, ILI9341 por SPI, touch XPT2046 resistivo.
-// Pinos e calibração de touch validados no bring-up — ver
-// firmware/bringup_cyd/config.h (referência conhecida-boa).
+// Claude Usage Stick — ESP32-2432S028 (CYD, ESP32 + ILI9341 + XPT2046)
+// Pinos e calibração: ver firmware/bringup_cyd/config.h
 // ============================================================
 
 // ── Firmware ─────────────────────────────────────────────
@@ -25,7 +22,7 @@
 
 #define SCREEN_WIDTH   320  // paisagem (nativo 240x320 retrato)
 #define SCREEN_HEIGHT  240
-#define TFT_ROTATION    1   // validado no bring-up: orientação correta
+#define TFT_ROTATION    1
 
 // ── Touch XPT2046 (SPI separado do display) ──────────────
 #define TOUCH_MOSI_PIN 32
@@ -33,7 +30,7 @@
 #define TOUCH_CLK_PIN  25
 #define TOUCH_CS_PIN   33
 #define TOUCH_IRQ_PIN  36
-// Calibração medida nesta unidade (bring-up: 4 cantos + 2 pontos-âncora)
+// Calibração desta unidade (varia por placa — recalibrar se o touch desalinhar)
 #define TS_MINX 300
 #define TS_MAXX 3500
 #define TS_MINY 430

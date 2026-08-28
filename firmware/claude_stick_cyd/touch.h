@@ -6,10 +6,8 @@
 #include <XPT2046_Touchscreen.h>
 #include "config.h"
 
-// Driver de toque XPT2046 (validado no bring-up — ver
-// firmware/bringup_cyd/config.h). Mesma interface pública do
-// AXS15231B_Touch da placa S3 (begin/touched/readData) pra manter
-// touch_read_cb() do .ino igual ao original.
+// Driver de toque XPT2046 (SPI separado do display). Mesma interface
+// pública do AXS15231B_Touch original (begin/touched/readData).
 class CYD_Touch {
 public:
     bool begin() {
@@ -22,8 +20,8 @@ public:
 
     void readData(uint16_t *x, uint16_t *y) {
         TS_Point p = _ts.getPoint();
-        // Mapeamento direto (raw_x/raw_y já alinhados com a tela em
-        // TFT_ROTATION=1 — sem swap/inversão, medido no bring-up).
+        // raw_x/raw_y já saem alinhados com a tela em TFT_ROTATION=1 — sem
+        // swap/inversão de eixo (diferente do driver AXS15231B original).
         long sx = constrain(map(p.x, TS_MINX, TS_MAXX, 0, SCREEN_WIDTH - 1), 0, SCREEN_WIDTH - 1);
         long sy = constrain(map(p.y, TS_MINY, TS_MAXY, 0, SCREEN_HEIGHT - 1), 0, SCREEN_HEIGHT - 1);
         *x = (uint16_t)sx;
