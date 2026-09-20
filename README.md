@@ -246,6 +246,45 @@ python3 tools/token_bridge.py --loop 120    # keep pushing every 2 min
 The device advertises itself via mDNS as **`claude-stick.local`** while the dashboard is open. If
 the row disappears, the data just went stale (> 15 min without a push).
 
+#### Keeping it running via a Claude Code hook (alternative to cron)
+
+If your main use of the bridge is with the **Claude Code CLI**, you don't need a system cron job:
+a `SessionStart` hook can launch it automatically whenever you open a terminal session, and only
+while you're actually working — no requests to the device the rest of the day for nothing.
+
+[`tools/claude-code-token-bridge-hook.sh`](tools/claude-code-token-bridge-hook.sh) is a ready-made
+helper that checks (via `pgrep`) whether the bridge is already running before starting it, so
+opening several terminal tabs/sessions never spawns duplicate loops. Wire it into
+`~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /absolute/path/to/claude-usage-stick-SVGL/tools/claude-code-token-bridge-hook.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+For a multi-account setup, set `CLAUDE_STICK_BRIDGE_ACCOUNT` to the label configured on the device
+before Claude Code starts (e.g. in your shell profile), same idea as the `--account` flag above.
+
+> **Don't inline the `pgrep`/`nohup` logic directly in the hook's `command` string.** The wrapping
+> shell process's own argv then contains the search pattern (since it's part of the command text
+> itself), and `pgrep -f` can intermittently match that wrapper process instead of the real bridge
+> — silently skipping the actual start. Keeping the logic in a separate script file avoids this,
+> since the script's own invocation (`bash .../claude-code-token-bridge-hook.sh`) doesn't contain
+> the pattern being searched for.
+
 With multiple accounts, run one bridge per machine with `--account <label>` (the label configured
 on the gadget). `GET /window` reports which account is active; a push for another account gets a
 `409` and is simply skipped until that account becomes active again.
