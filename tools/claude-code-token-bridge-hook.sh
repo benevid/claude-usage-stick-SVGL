@@ -23,7 +23,15 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$DIR/tools/token_bridge.py"
-LOG="${CLAUDE_STICK_BRIDGE_LOG:-$HOME/Library/Logs/claude-usage-stick-token-bridge.log}"
+# ~/Library/Logs so existe no macOS; no Linux vale o XDG. Sem o mkdir o redirect
+# falha e a ponte nao sobe — em silencio, porque o hook nao mostra stderr.
+if [ -d "$HOME/Library/Logs" ]; then
+  LOG_DIR="$HOME/Library/Logs"
+else
+  LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"
+fi
+LOG="${CLAUDE_STICK_BRIDGE_LOG:-$LOG_DIR/claude-usage-stick-token-bridge.log}"
+mkdir -p "$(dirname "$LOG")"
 
 ARGS=(--loop 120)
 if [ -n "${CLAUDE_STICK_BRIDGE_ACCOUNT:-}" ]; then

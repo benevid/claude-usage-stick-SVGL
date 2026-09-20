@@ -390,8 +390,13 @@ static void pin_update_dots() {
 // comparar por delta assinado. O g_lockoutUntil == 0 precisa de guard proprio,
 // senao o delta fica negativo sozinho a partir de 2^31 ms de uptime (~24 dias)
 // e o teclado morreria sem nunca ter havido bloqueio.
+// Deadline vencido e zerado na hora: parado, ele voltaria a parecer "no futuro"
+// ~24,8 dias depois, quando o delta assinado da a volta.
 static bool pin_locked() {
-  return g_lockoutUntil != 0 && (int32_t)(millis() - g_lockoutUntil) < 0;
+  if (g_lockoutUntil == 0) return false;
+  if ((int32_t)(millis() - g_lockoutUntil) < 0) return true;
+  g_lockoutUntil = 0;
+  return false;
 }
 
 // O teclado destrava sozinho quando o deadline passa, mas a mensagem era
