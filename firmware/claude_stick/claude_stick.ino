@@ -110,6 +110,8 @@ static char g_pinFirst[PIN_LEN + 1] = {0};   // 1ª entrada no setup de PIN
 static bool g_pinConfirming = false;         // setup: confirmando 2ª vez
 static int  g_pinAttempts = 0;               // tentativas erradas (persistido)
 static uint32_t g_lockoutUntil = 0;          // millis até liberar nova tentativa
+static bool g_lockPainted = false;           // aviso ja esta em vermelho
+static int  g_lockSecs = -1;                 // ultimo segundo renderizado
 static bool g_timeInit = false;
 
 // ---- Refresh em background ----
@@ -185,6 +187,7 @@ static void dash_tick();
 static void set_hdr_status();
 static void apply_tz();
 static void ui_pin();
+static void pin_lock_tick();
 static void ui_wifi();
 static void ui_token();
 static void ui_loading(const char *sub);
@@ -357,6 +360,7 @@ static void factory_reset() {
   g_hasToken = false;
   g_token[0] = 0; g_pendingToken[0] = 0;
   g_pinAttempts = 0;
+  g_lockoutUntil = 0;                        // senao contamina a tela de setup
   g_onboarding = true;
   Serial.println("[RESET] tudo apagado");
 }
@@ -380,6 +384,43 @@ static void pin_update_dots() {
     if (i < PIN_LEN - 1) strcat(dots, " ");
   }
   lv_label_set_text(g_pinDots, dots);
+}
+
+// millis() vira em ~49 dias e o deadline pode cair do outro lado da volta:
+// comparar por delta assinado. O g_lockoutUntil == 0 precisa de guard proprio,
+// senao o delta fica negativo sozinho a partir de 2^31 ms de uptime (~24 dias)
+// e o teclado morreria sem nunca ter havido bloqueio.
+static bool pin_locked() {
+  return g_lockoutUntil != 0 && (int32_t)(millis() - g_lockoutUntil) < 0;
+}
+
+// O teclado destrava sozinho quando o deadline passa, mas a mensagem era
+// escrita uma unica vez em pin_submit(): ficava "Aguarde 60s" na tela com o PIN
+// ja aceitando digito. Este tick roda no loop() e cuida das duas pontas — conta
+// regressiva enquanto trava, aviso neutro ao liberar — e e dono tambem da cor,
+// para os dois estados nascerem no mesmo lugar.
+static void pin_lock_tick() {
+  if (!g_pinMsg) return;
+  char m[64];
+  if (pin_locked()) {
+    if (!g_lockPainted) {
+      g_lockPainted = true;
+      lv_obj_set_style_text_color(g_pinMsg, lv_color_hex(C_BAD), 0);
+    }
+    int rem = (int)((g_lockoutUntil - millis() + 999) / 1000);
+    if (rem == g_lockSecs) return;      // so reescreve quando o segundo vira
+    g_lockSecs = rem;
+    snprintf(m, sizeof(m), TRS("PIN errado (%d/%d). Aguarde %ds", "Wrong PIN (%d/%d). Wait %ds"),
+             g_pinAttempts, MAX_PIN_ATTEMPTS, rem);
+    lv_label_set_text(g_pinMsg, m);
+  } else if (g_lockPainted) {
+    g_lockPainted = false;
+    g_lockSecs = -1;
+    snprintf(m, sizeof(m), TRS("Pode tentar de novo (%d/%d)", "You can try again (%d/%d)"),
+             g_pinAttempts, MAX_PIN_ATTEMPTS);
+    lv_label_set_text(g_pinMsg, m);
+    lv_obj_set_style_text_color(g_pinMsg, lv_color_hex(C_MUTED), 0);
+  }
 }
 
 static void pin_submit() {
@@ -424,7 +465,7 @@ static void pin_submit() {
 
   // ST_PIN: tenta decifrar
   if (decryptToken(g_blob, g_pinEntry, g_token, sizeof(g_token))) {
-    g_pinAttempts = 0; save_attempts();
+    g_pinAttempts = 0; g_lockoutUntil = 0; save_attempts();
     strlcpy(g_sessionPin, g_pinEntry, sizeof(g_sessionPin));
     memset(g_pinEntry, 0, sizeof(g_pinEntry));
     Serial.printf("[PIN] ok, token %d chars\n", (int)strlen(g_token));
@@ -442,18 +483,15 @@ static void pin_submit() {
     int wait = LOCKOUT_BASE_SEC * (1 << (g_pinAttempts - 1));
     if (wait > 3600) wait = 3600;
     g_lockoutUntil = millis() + (uint32_t)wait * 1000;
-    if (g_pinMsg) {
-      char m[64];
-      snprintf(m, sizeof(m), TRS("PIN errado (%d/%d). Aguarde %ds", "Wrong PIN (%d/%d). Wait %ds"),
-               g_pinAttempts, MAX_PIN_ATTEMPTS, wait);
-      lv_label_set_text(g_pinMsg, m);
-    }
+    if (!g_lockoutUntil) g_lockoutUntil = 1;   // 0 e o sentinela de "sem bloqueio"
+    g_lockSecs = -1;
+    pin_lock_tick();                 // escreve ja; o loop() mantem a contagem
   }
 }
 
 static void pin_kb_cb(lv_event_t *e) {
   if (lv_event_get_code(e) != LV_EVENT_VALUE_CHANGED) return;
-  if (millis() < g_lockoutUntil) return;     // travado
+  if (pin_locked()) return;                  // travado
   lv_obj_t *bm = (lv_obj_t *)lv_event_get_target(e);
   uint32_t id = lv_buttonmatrix_get_selected_button(bm);
   const char *txt = lv_buttonmatrix_get_button_text(bm, id);
@@ -488,6 +526,8 @@ static void ui_pin() {
     ? TRS("Voce vai digita-lo a cada boot.", "You'll type it on every boot.")
     : TRS("Necessario para desbloquear o token.", "Needed to unlock the token.");
   g_pinMsg = mklabel(scr, sub, &lv_font_montserrat_14, C_MUTED);
+  g_lockPainted = false;                       // label novo: estado do aviso zera
+  g_lockSecs = -1;
   lv_obj_align(g_pinMsg, LV_ALIGN_TOP_MID, 0, 86);
 
   lv_obj_t *bm = lv_buttonmatrix_create(scr);
@@ -501,11 +541,7 @@ static void ui_pin() {
   lv_obj_set_style_text_color(bm, lv_color_hex(C_TEXT), LV_PART_ITEMS);
   lv_obj_add_event_cb(bm, pin_kb_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
-  if (millis() < g_lockoutUntil && g_pinMsg) {
-    int rem = (g_lockoutUntil - millis()) / 1000;
-    char m[48]; snprintf(m, sizeof(m), TRS("Aguarde %ds", "Wait %ds"), rem);
-    lv_label_set_text(g_pinMsg, m);
-  }
+  pin_lock_tick();      // se ha bloqueio pendente, ja nasce com a contagem
 }
 
 // ============================================================
@@ -2664,6 +2700,14 @@ void loop() {
       (g_wantRefresh || millis() - g_lastPollMs > (uint32_t)g_pollSec * 1000)) {
     g_wantRefresh = false;
     bg_refresh();           // seta g_lastPollMs no fim
+  }
+
+  // Contagem do bloqueio por PIN errado. 250ms para o segundo virar sem atraso
+  // visivel; o tick so reescreve o label quando o valor muda. So ST_PIN: o
+  // setup de PIN nao tem tentativa nem bloqueio.
+  if (g_state == ST_PIN) {
+    static uint32_t lastLock = 0;
+    if (millis() - lastLock > 250) { lastLock = millis(); pin_lock_tick(); }
   }
 
   // Atualização viva: contadores (1s), barra de refresh (250ms), mascotes,
