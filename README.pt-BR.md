@@ -201,11 +201,33 @@ Os pinos e a configuração validada de display/cores/touch estão em
 [`firmware/REFERENCIA-HARDWARE-LVGL.md`](firmware/REFERENCIA-HARDWARE-LVGL.md), e o sketch de
 bring-up de referência em [`firmware/bringup/`](firmware/bringup/).
 
-### Case para impressão 3D
+---
 
-Um case pronto para imprimir para esta placa está incluído:
-[`3D Case/Case_JC3248W535C.stl`](3D%20Case/Case_JC3248W535C.stl) — imprima, encaixe a placa e o
-Usage Stick está pronto para a mesa.
+## Cases para impressão 3D
+
+Três jeitos de colocar na mesa. Os dois primeiros vêm neste repositório em STL; o terceiro é um
+projeto da comunidade.
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="33%"><img src="assets/case-simples.png" alt="Case em cunha para mesa (render)"><br><b>Cunha de mesa</b></td>
+    <td align="center" valign="top" width="33%"><img src="assets/case-articulado.png" alt="Suporte articulado (render)"><br><b>Suporte articulado</b></td>
+    <td align="center" valign="top" width="33%"><a href="https://makerworld.com/pt/models/3329534-case-claude-para-display-esp32-mascote"><img src="assets/case-clawd-vinnialfonso.jpg" alt="Case em formato de Clawd, de Vinicius Alfonso, impresso em laranja"></a><br><b>Clawd</b> — por Vinicius Alfonso</td>
+  </tr>
+</table>
+
+- **Cunha de mesa** — [`3D Case/Case_JC3248W535C.stl`](3D%20Case/Case_JC3248W535C.stl). Peça única:
+  imprima, encaixe a placa e o Usage Stick está pronto para a mesa.
+- **Suporte articulado** — [`3D Case/Articulado/`](3D%20Case/Articulado/). Quatro peças — base,
+  junção, case e suporte do display — para inclinar a tela no ângulo que a sua mesa pedir.
+- **Clawd** — o próprio mascote, com braços e pernas, segurando a tela. Criado por
+  **Vinicius Alfonso** (@vinnialfonso) e publicado no MakerWorld; a foto é a impressão dele rodando
+  este firmware. Não vem no repositório —
+  [baixe no MakerWorld](https://makerworld.com/pt/models/3329534-case-claude-para-display-esp32-mascote).
+
+Fez o seu próprio case? Abra um PR adicionando à lista.
+
+Os dois renders saem do `tools/gen_case_renders.py`, direto dos arquivos STL.
 
 ---
 
@@ -254,8 +276,10 @@ linha sumir, é porque o dado ficou velho (> 15 min sem envio).
 #### Mantendo rodando via hook do Claude Code (alternativa ao cron)
 
 Se o seu uso principal da ponte é com o **Claude Code CLI**, não precisa de um cron do sistema: um
-hook `SessionStart` pode iniciar ela sozinha toda vez que você abre uma sessão de terminal — e só
-enquanto você está de fato trabalhando, sem ficar batendo no device o dia todo à toa.
+hook `SessionStart` pode iniciá-la sozinha na primeira vez que você abre uma sessão. Depois de
+iniciada ela segue rodando em segundo plano até você encerrar a sessão do sistema ou reiniciar
+(para parar antes: `pkill -f token_bridge.py`); o log vai para `~/Library/Logs/` no macOS e
+`~/.local/state/` no Linux, ou para onde `CLAUDE_STICK_BRIDGE_LOG` apontar.
 
 O [`tools/claude-code-token-bridge-hook.sh`](tools/claude-code-token-bridge-hook.sh) é um helper
 pronto que verifica (via `pgrep`) se a ponte já está rodando antes de iniciar, então abrir várias
@@ -510,8 +534,9 @@ tools/
   gen_mockups.py                # regenera assets/mock-*.png (as telas)
   gen_banners.py                # regenera assets/banner-*.png (banners do README)
   gen_social.py                 # regenera assets/social-preview*.png (cartao social do repo)
+  gen_case_renders.py           # regenera assets/case-*.png (renders dos cases em STL)
 assets/                         # mockups das telas, banners do README + marca (brand/)
-3D Case/                        # case imprimível (STL) para a placa
+3D Case/                        # cases imprimíveis (STL) para a placa
 ```
 
 ## Onde mexer
