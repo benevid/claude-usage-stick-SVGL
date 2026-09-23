@@ -38,7 +38,9 @@ bool fetchUsage(const char* token, UsageData& out) {
     https.addHeader("anthropic-version", ANTHROPIC_VERSION);
     https.addHeader("anthropic-beta", "oauth-2025-04-20");
     https.addHeader("content-type", "application/json");
-    https.addHeader("User-Agent", "claude-code/2.1.5");
+    // A API checa esta versao para modelos novos: com UA antigo a sonda do Fable
+    // vinha 400 "version too old" em vez do 429 que a aba Modelos entende.
+    https.addHeader("User-Agent", "claude-code/2.1.280");
     https.setTimeout(API_TIMEOUT_MS);
     https.collectHeaders(RL_HEADERS, RL_HEADER_COUNT);
 
@@ -101,7 +103,7 @@ bool probeModel(const char* token, const char* modelId, ProbeResult& out) {
     https.addHeader("anthropic-version", ANTHROPIC_VERSION);
     https.addHeader("anthropic-beta", "oauth-2025-04-20");
     https.addHeader("content-type", "application/json");
-    https.addHeader("User-Agent", "claude-code/2.1.5");
+    https.addHeader("User-Agent", "claude-code/2.1.280");
     https.setTimeout(API_TIMEOUT_MS);
 
     String body = String("{\"model\":\"") + modelId + "\","

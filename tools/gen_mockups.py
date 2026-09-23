@@ -87,10 +87,10 @@ def gear(d, cx, cy):
     d.ellipse((cx - 3, cy - 3, cx + 3, cy + 3), fill=hexrgb(SURF2))
 
 
-def header(im, d, status="atualizado ha 24s"):
+def header(im, d):
+    # sem texto de status: a barra fina abaixo ja mostra o ciclo de atualizacao
     im.alpha_composite(CLAWD_SM, (14, 8))
     im.alpha_composite(WORDMARK, (66, 8))
-    d.text((398, 16), status, font=F(12), fill=hexrgb(MUTED), anchor="rm")
     d.rounded_rectangle((416, 2, 474, 42), 10, fill=hexrgb(SURF2))
     gear(d, 445, 22)
     d.rectangle((0, 40, 480, 43), fill=hexrgb(SURF))

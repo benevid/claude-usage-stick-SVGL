@@ -4,6 +4,7 @@
 #
 # Uso: conecte a tela (Guition JC4832W535) no USB e rode:
 #     ./flash.sh
+#     ./flash.sh --logo parceiro.png   # com logo de parceiro no header
 #
 # O script encontra a porta sozinho (espera até 30s se ainda não conectou),
 # compila e grava. Pré-requisitos: arduino-cli + core esp32 3.3.11 + libs
@@ -34,6 +35,6 @@ fi
 
 echo "==> tela encontrada em $PORT"
 echo "==> compilando e gravando a versao atual..."
-firmware/claude_stick/build.sh upload "$PORT"
+firmware/claude_stick/build.sh upload "$PORT" "$@"
 echo
 echo "==> pronto! O device reinicia sozinho (vai pedir o PIN na tela)."

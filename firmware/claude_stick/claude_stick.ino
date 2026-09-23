@@ -33,6 +33,9 @@
 #include "crypto.h"
 #include "accounts.h"
 #include "logo_assets.h"   // Clawd + logotipo oficiais (gerado por tools/gen_logo_assets.py)
+#ifdef PARTNER_LOGO
+#include "partner_logo.h"  // logo de parceiro: gerado pelo build.sh --logo, fora do sketch
+#endif
 
 // ---- Paleta (escuro, minimalista; acento coral do Claude) ----
 #define C_BG       0x0F0F12
@@ -119,7 +122,6 @@ static bool g_wantRefresh = false;        // botão de refresh pediu atualizaç�
 static bool g_refreshing = false;         // busca em andamento
 static bool g_lastFetchOk = true;         // último fetch deu certo?
 static uint32_t g_lastOkMs = 0;           // millis do último sucesso (p/ "atualizado há Xs")
-static lv_obj_t *g_hdrStatus = nullptr;   // texto de status no cabeçalho do dashboard
 
 // ---- Brilho ----
 static const uint8_t BRI_LEVELS[3] = {60, 160, 255};
@@ -1968,19 +1970,13 @@ static void refresh_ui_values() {
 }
 
 // Atualiza o texto de status do cabeçalho (sem trocar de tela)
+// O header nao tem mais texto de status ("atualizado ha Xmin" era redundante
+// com a barra de refresh). O que sobrou de informacao — falhou ou nao — vai na
+// cor da propria barra: coral normal, vermelha ate o proximo fetch OK.
 static void set_hdr_status() {
-  if (!g_hdrStatus) return;
-  char buf[40]; uint32_t color;
-  if (g_refreshing)        { strcpy(buf, TRS("atualizando...", "updating..."));      color = C_ACCENT; }
-  else if (!g_lastFetchOk) { strcpy(buf, TRS("falha ao atualizar", "update failed")); color = C_BAD; }
-  else {
-    uint32_t s = (millis() - g_lastOkMs) / 1000;
-    if (s < 60) snprintf(buf, sizeof(buf), TRS("atualizado ha %us", "updated %us ago"), (unsigned)s);
-    else        snprintf(buf, sizeof(buf), TRS("atualizado ha %umin", "updated %um ago"), (unsigned)(s / 60));
-    color = C_MUTED;
-  }
-  lv_label_set_text(g_hdrStatus, buf);
-  lv_obj_set_style_text_color(g_hdrStatus, lv_color_hex(color), 0);
+  if (!g_ui.refBar) return;
+  lv_obj_set_style_bg_color(g_ui.refBar, lv_color_hex(g_lastFetchOk ? C_ACCENT : C_BAD),
+                            LV_PART_INDICATOR);
 }
 // Botão de refresh: só pede; a busca acontece em background no loop()
 static void refresh_cb(lv_event_t *e) { (void)e; g_wantRefresh = true; }
@@ -1997,11 +1993,22 @@ static void ui_main() {
   lv_image_set_src(hIcon, &img_clawd_sm);
   lv_obj_set_pos(hIcon, 14, 8);
   lv_obj_t *hWord = lv_image_create(scr);
+#ifdef PARTNER_LOGO
+  // Build de parceiro: sem wordmark; o logo dele fica centrado no header, na
+  // mesma faixa vertical de 26px. Largura vem do gerador (max 120).
+  lv_image_set_src(hWord, &img_partner);
+  lv_obj_align(hWord, LV_ALIGN_TOP_MID, 0, 8 + (26 - PARTNER_LOGO_H) / 2);
+  const int logoEnd = 14 + 42;                 // hotspot cobre so o Clawd
+  const int badgeEnd = 240 - PARTNER_LOGO_W / 2 - 8;
+#else
   lv_image_set_src(hWord, &img_wordmark);
   lv_obj_set_pos(hWord, 66, 8);
+  const int logoEnd = 66 + 56;
+  const int badgeEnd = 300;
+#endif
 
   lv_obj_t *logoSpot = lv_obj_create(scr);     // hotspot icone+nome (so demo)
-  lv_obj_set_pos(logoSpot, 6, 2); lv_obj_set_size(logoSpot, 128, 40);
+  lv_obj_set_pos(logoSpot, 6, 2); lv_obj_set_size(logoSpot, logoEnd + 6 - 6, 40);
   lv_obj_set_style_bg_opa(logoSpot, 0, 0);
   lv_obj_set_style_border_width(logoSpot, 0, 0);
   lv_obj_clear_flag(logoSpot, LV_OBJ_FLAG_SCROLLABLE);
@@ -2021,28 +2028,28 @@ static void ui_main() {
     }
   }, LV_EVENT_CLICKED, NULL);
 
-  // botao de atualizar no centro do header (acao explicita; a busca e bloqueante)
+  // botao de atualizar a direita, colado na engrenagem (acao explicita; a busca
+  // e bloqueante). Engrenagem ocupa x=396..474; este fica em 332..388.
   lv_obj_t *ref = mkbtn(scr, LV_SYMBOL_REFRESH, &lv_font_montserrat_20, C_SURFACE2, C_ACCENT);
   lv_obj_set_size(ref, 56, 40);
   lv_obj_set_ext_click_area(ref, 10);
-  lv_obj_align(ref, LV_ALIGN_TOP_MID, 0, 2);
+  lv_obj_align(ref, LV_ALIGN_TOP_RIGHT, -92, 2);
   lv_obj_add_event_cb(ref, refresh_cb, LV_EVENT_CLICKED, NULL);
 
-  g_hdrStatus = mklabel(scr, "", &lv_font_montserrat_12, C_MUTED);
-  lv_obj_align(g_hdrStatus, LV_ALIGN_TOP_RIGHT, -92, 16);
 
-  // Badge da conta ativa. A faixa livre do cabecalho e estreita: o hotspot do
-  // logo termina em x=134 e o botao de atualizar (56 px centrado, mais 10 px de
-  // ext_click_area) passa a capturar toque em x=202. Ficar em 138..194 deixa
-  // 8 px de folga do lado direito — encostar em 202 faria o toque "no badge"
-  // disparar o refresh. LONG_DOT corta o rotulo que nao couber.
-  if (accountCount(g_accts) > 1) {
+  // Badge da conta ativa, entre o logo e o botao de atualizar. O botao (mais
+  // 10 px de ext_click_area) captura toque a partir de x=322; parar em 300
+  // deixa folga para o toque "no badge" nao disparar o refresh. LONG_DOT corta
+  // o rotulo que nao couber.
+  // Com logo de parceiro (centrado) o badge fica entre o Clawd e o logo.
+  const int acctX = (logoEnd + 8 > 138) ? logoEnd + 8 : 138;
+  if (accountCount(g_accts) > 1 && badgeEnd - acctX >= 36) {
     char ab[ACCT_LBL_MAX + 1];
     snprintf(ab, sizeof(ab), "@%s", g_accts.label[g_accts.active]);
     lv_obj_t *acct = mklabel(scr, ab, &lv_font_montserrat_12, C_ACCENT);
-    lv_obj_set_width(acct, 56);
+    lv_obj_set_width(acct, badgeEnd - acctX);
     lv_label_set_long_mode(acct, LV_LABEL_LONG_DOT);
-    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, 138, 16);
+    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, acctX, 16);
   }
 
   lv_obj_t *gear = mkbtn(scr, LV_SYMBOL_SETTINGS, &lv_font_montserrat_22, C_SURFACE2, C_TEXT);
@@ -2476,6 +2483,12 @@ static void ui_about() {
   snprintf(v, sizeof(v), "v" FW_VERSION " \xE2\x80\xA2 ESP32-S3 \xE2\x80\xA2 LVGL 9.2");
   lv_obj_t *ver = mklabel(scr, v, &lv_font_montserrat_12, C_FAINT);
   lv_obj_align(ver, LV_ALIGN_TOP_MID, 0, 122);
+#ifdef PARTNER_LOGO
+  // build de parceiro: o logo dele ao lado da versao, mesma linha
+  lv_obj_t *pl = lv_image_create(scr);
+  lv_image_set_src(pl, &img_partner);
+  lv_obj_align_to(pl, ver, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
+#endif
 
   lv_obj_t *d = mklabel(scr, TRS("Medidor de uso do Claude Code em tempo real: "
                                  "janelas de 5h e semanal direto da API da Anthropic.",
@@ -2522,7 +2535,6 @@ static void render_state() {
   g_pinDots = g_pinMsg = nullptr;
   g_tokMsg = nullptr;
   g_nameTa = nullptr;
-  g_hdrStatus = nullptr;
   g_briLbl = g_wipeLbl = g_pollLbl = g_tzLbl = g_slideLbl = nullptr;
 
   lv_obj_clean(lv_screen_active());

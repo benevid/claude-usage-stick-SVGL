@@ -8,6 +8,12 @@
 #   ./build.sh upload <porta>  # compila + grava na porta indicada
 #   ./build.sh monitor <porta> # abre o serial monitor (115200)
 #
+# Opcao (em qualquer posicao): --logo <arquivo.png|svg>
+#   Compila o firmware com o logo de um parceiro no lugar do wordmark
+#   "CLAUDE CODE" no header. O tools/gen_partner_logo.py gera partner_logo.h
+#   num diretorio temporario que entra por -I + -DPARTNER_LOGO — nada fica
+#   dentro do sketch, e um build sem --logo volta ao firmware padrao sozinho.
+#
 # Pré-requisitos (ver firmware/REFERENCIA-HARDWARE-LVGL.md):
 #   - arduino-cli 1.4.x, core esp32:esp32 3.3.11
 #   - libs: GFX Library for Arduino 1.6.5, lvgl 9.2.2
@@ -23,8 +29,24 @@ PORT_DEFAULT="/dev/cu.usbmodem101"
 
 LVFLAGS="-DLV_CONF_INCLUDE_SIMPLE -I${SKETCH_DIR}"
 
-cmd="${1:-build}"
-port="${2:-$PORT_DEFAULT}"
+# --logo <arquivo> pode vir antes ou depois de cmd/porta
+logo=""; args=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --logo) [ $# -ge 2 ] || { echo "erro: --logo precisa de um arquivo" >&2; exit 1; }
+            logo="$2"; shift 2 ;;
+    *)      args+=("$1"); shift ;;
+  esac
+done
+cmd="${args[0]:-build}"
+port="${args[1]:-$PORT_DEFAULT}"
+
+if [ -n "$logo" ]; then
+  GEN_DIR="$(mktemp -d)"
+  echo "==> logo do parceiro: $logo"
+  python3 "$SKETCH_DIR/../../tools/gen_partner_logo.py" "$logo" -o "$GEN_DIR/partner_logo.h"
+  LVFLAGS="$LVFLAGS -DPARTNER_LOGO -I$GEN_DIR"
+fi
 
 case "$cmd" in
   monitor)
