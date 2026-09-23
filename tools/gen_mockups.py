@@ -66,10 +66,10 @@ def render_word(h):
     return im.resize((round(im.width * h / im.height), h), Image.LANCZOS)
 
 
-CLAWD_SM = render_svg("claudecode-color.svg", 42)
+CLAWD_SM = render_svg("claudecode-color.svg", 58)
 CLAWD_MD = render_svg("claudecode-color.svg", 88)
 CLAWD_XL = render_svg("claudecode-color.svg", 176)
-WORDMARK = render_word(26)
+WORDMARK = render_word(36)
 
 
 def canvas():
@@ -89,12 +89,16 @@ def gear(d, cx, cy):
 
 def header(im, d):
     # sem texto de status: a barra fina abaixo ja mostra o ciclo de atualizacao
-    im.alpha_composite(CLAWD_SM, (14, 8))
-    im.alpha_composite(WORDMARK, (66, 8))
-    d.rounded_rectangle((416, 2, 474, 42), 10, fill=hexrgb(SURF2))
-    gear(d, 445, 22)
-    d.rectangle((0, 40, 480, 43), fill=hexrgb(SURF))
-    d.rectangle((0, 40, 300, 43), fill=hexrgb(ACCENT))
+    # header de 56px: Clawd 58x36 + wordmark 36px; refresh e engrenagem a direita
+    im.alpha_composite(CLAWD_SM, (12, 10))
+    im.alpha_composite(WORDMARK, (80, 10))
+    d.rounded_rectangle((332, 8, 388, 48), 10, fill=hexrgb(SURF2))
+    d.arc((350, 18, 370, 38), 300, 240, fill=hexrgb(ACCENT), width=3)
+    d.polygon(((369, 17), (376, 26), (365, 27)), fill=hexrgb(ACCENT))
+    d.rounded_rectangle((416, 8, 474, 48), 10, fill=hexrgb(SURF2))
+    gear(d, 445, 28)
+    d.rectangle((0, 56, 480, 59), fill=hexrgb(SURF))
+    d.rectangle((0, 56, 300, 59), fill=hexrgb(ACCENT))
 
 
 def dots(d, active):
@@ -130,12 +134,12 @@ def mock_agora():
     header(im, d)
     for (x, title, pct, cd, at) in ((8, "5 HORAS", 41, "1h 40m", "RESETA EM • qui 16:30"),
                                     (244, "SEMANA", 16, "5d 3h", "RESETA EM • ter 11:59")):
-        d.rounded_rectangle((x, 50, x + 228, 260), 18, fill=hexrgb(SURF))
-        d.text((x + 14, 64), title, font=F(14), fill=hexrgb(MUTED))
-        d.text((x + 14, 84), f"{pct}%", font=F(48), fill=grad(pct))
-        meter(d, x + 14, 146, pct)
-        d.text((x + 14, 170), at, font=F(12), fill=hexrgb(FAINT))
-        d.text((x + 14, 188), cd, font=F(40), fill=hexrgb(TEXT))
+        d.rounded_rectangle((x, 66, x + 228, 260), 18, fill=hexrgb(SURF))
+        d.text((x + 14, 80), title, font=F(14), fill=hexrgb(MUTED))
+        d.text((x + 14, 100), f"{pct}%", font=F(48), fill=grad(pct))
+        meter(d, x + 14, 162, pct)
+        d.text((x + 14, 186), at, font=F(12), fill=hexrgb(FAINT))
+        d.text((x + 14, 204), cd, font=F(40), fill=hexrgb(TEXT))
     chip(d, 8, 266, "OK", OK)
     d.text((472, 278), "tokens na janela: 1.2M entrada • 88k saida",
            font=F(12), fill=hexrgb(MUTED), anchor="rm")
@@ -162,18 +166,18 @@ def mock_modelos():
     centers = (60, 180, 300, 420)
     names = ("Haiku", "Sonnet", "Opus", "Fable")
     for i, cx in enumerate(centers):
-        ox, oy = cx - 44, 60
+        ox, oy = cx - 44, 76
         im.alpha_composite(CLAWD_MD, (ox, oy + 20))
         acc(d, ox, oy, i)
         if i > 0:  # limitados: gota de suor
             d.rounded_rectangle((ox + 70, oy + 30, ox + 76, oy + 40), 3, fill=hexrgb(BLUE))
-        d.text((cx, 152), names[i], font=F(16),
+        d.text((cx, 168), names[i], font=F(16),
                fill=hexrgb(TEXT if i == 0 else MUTED), anchor="mm")
         txt, col = ("OK 0.9s", OK) if i == 0 else ("LIMITADO", WARN)
         w = d.textlength(txt, font=F(12)) + 20
-        chip(d, cx - w / 2, 168, txt, col)
-    d.text((14, 216), "sonda real na API • 1 modelo por ciclo", font=F(12), fill=hexrgb(FAINT))
-    d.text((14, 240), "status.claude.com: OK • sem incidentes", font=F(14), fill=hexrgb(FAINT))
+        chip(d, cx - w / 2, 184, txt, col)
+    d.text((14, 232), "sonda real na API • 1 modelo por ciclo", font=F(12), fill=hexrgb(FAINT))
+    d.text((14, 256), "status.claude.com: OK • sem incidentes", font=F(14), fill=hexrgb(FAINT))
     dots(d, 1)
     return im
 
@@ -182,10 +186,10 @@ def mock_modelos():
 def mock_janela():
     im, d = canvas()
     header(im, d)
-    d.text((14, 48), "Janela de 5h", font=F(16), fill=hexrgb(TEXT))
-    d.text((320, 52), "uso real + projecao", font=F(12), fill=hexrgb(FAINT))
-    d.rounded_rectangle((8, 72, 472, 242), 18, fill=hexrgb(SURF))
-    x0, y0, w, h = 20, 82, 440, 126
+    d.text((14, 64), "Janela de 5h", font=F(16), fill=hexrgb(TEXT))
+    d.text((320, 68), "uso real + projecao", font=F(12), fill=hexrgb(FAINT))
+    d.rounded_rectangle((8, 88, 472, 242), 18, fill=hexrgb(SURF))
+    x0, y0, w, h = 20, 98, 440, 110
     y = lambda p: y0 + h - p * h / 100
     for p in (25, 50, 75):
         d.line((x0, y(p), x0 + w, y(p)), fill=hexrgb(GRID))
@@ -219,12 +223,12 @@ def mock_janela():
 def mock_ritmo():
     im, d = canvas()
     header(im, d)
-    d.text((14, 52), "Ritmo por hora", font=F(16), fill=hexrgb(TEXT))
+    d.text((14, 68), "Ritmo por hora", font=F(16), fill=hexrgb(TEXT))
     for i, name in enumerate(("Hoje", "7d", "30d", "Tudo")):
         x = 246 + i * 56
         on = (i == 3)
-        d.rounded_rectangle((x, 46, x + 52, 76), 15, fill=hexrgb(ACCENT if on else SURF2))
-        d.text((x + 26, 61), name, font=F(14), fill=hexrgb(BG if on else MUTED), anchor="mm")
+        d.rounded_rectangle((x, 62, x + 52, 92), 15, fill=hexrgb(ACCENT if on else SURF2))
+        d.text((x + 26, 77), name, font=F(14), fill=hexrgb(BG if on else MUTED), anchor="mm")
     prof = [0, 0, 0, 0, 0, 0, 1, 2, 5, 9, 12, 10, 4, 6, 11, 14, 12, 8, 5, 3, 2, 1, 0, 0]
     mx = max(prof)
     for hh in range(24):
@@ -232,10 +236,10 @@ def mock_ritmo():
         hgt = 4 + r * 114
         x = 18 + hh * 18
         col = hexrgb(TEXT) if hh == 15 else mix(ACCENT, BG, (1 - r) * 0.55)
-        d.rounded_rectangle((x, 222 - hgt, x + 13, 222), 3, fill=col)
+        d.rounded_rectangle((x, 238 - hgt, x + 13, 238), 3, fill=col)
     for hh in (0, 6, 12, 18, 23):
-        d.text((14 + hh * 18, 232), f"{hh}h", font=F(12), fill=hexrgb(MUTED))
-    d.text((14, 260), "quota da janela 5h queimada em cada hora local", font=F(12), fill=hexrgb(FAINT))
+        d.text((14 + hh * 18, 248), f"{hh}h", font=F(12), fill=hexrgb(MUTED))
+    d.text((14, 276), "quota da janela 5h queimada em cada hora local", font=F(12), fill=hexrgb(FAINT))
     dots(d, 3)
     return im
 

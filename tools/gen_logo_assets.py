@@ -100,11 +100,11 @@ def main() -> None:
 
     wm = render(TEXT_SVG, color=CORAL, height=64)
     wm = wm.crop(wm.getbbox())
-    wm = wm.resize((round(wm.width * 26 / wm.height), 26), Image.LANCZOS)
+    wm = wm.resize((round(wm.width * 36 / wm.height), 36), Image.LANCZOS)
     parts.append(to_c(wm, "img_wordmark"))
     print(f"wordmark: {wm.size}")
 
-    sm, _ = clawd(42)
+    sm, _ = clawd(58)                # header de 56px: 58x36
     parts.append(to_c(sm, "img_clawd_sm"))
     print(f"clawd_sm: {sm.size}")
 

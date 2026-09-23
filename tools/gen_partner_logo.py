@@ -23,8 +23,8 @@ from PIL import Image
 
 from gen_logo_assets import render, to_c
 
-HEIGHT = 26       # altura do img_wordmark que o logo substitui
-MAX_WIDTH = 120   # ate x=186: deixa o badge de conta e o botao de refresh (x=202) livres
+HEIGHT = 36       # altura do img_wordmark que o logo substitui (header de 56px)
+MAX_WIDTH = 170   # centrado: 155..325, longe do Clawd (ate x=70) e do refresh (x=322)
 
 
 def load(path: str, height: int) -> Image.Image:

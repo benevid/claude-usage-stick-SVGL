@@ -1400,7 +1400,7 @@ static void model_chip(int i, char *out, size_t sz, uint32_t *col) {
 // (verde -> vermelho conforme o uso) e countdown grande.
 static void build_win_card(lv_obj_t *t, int x, const char *title,
                            lv_obj_t **pct, lv_obj_t **seg, lv_obj_t **at, lv_obj_t **cd) {
-  lv_obj_t *c = card(t, x, 4, 228, 210);
+  lv_obj_t *c = card(t, x, 4, 228, 194);
   tstatic(c, title, &lv_font_montserrat_14, C_MUTED, 0, 0);
   *pct = tlabel(c, &lv_font_montserrat_48, C_OK, 0, 20);
   for (int i = 0; i < NSEG; i++)                    // medidor: 18 segmentos
@@ -1411,8 +1411,8 @@ static void build_win_card(lv_obj_t *t, int x, const char *title,
 static void build_tile_agora(lv_obj_t *t) {
   build_win_card(t, 8,   TRS("5 HORAS", "5 HOURS"), &g_ui.agPct5, g_ui.seg5, &g_ui.agAt5, &g_ui.agCd5);
   build_win_card(t, 244, TRS("SEMANA", "WEEK"),     &g_ui.agPct7, g_ui.seg7, &g_ui.agAt7, &g_ui.agCd7);
-  g_ui.agChip = mkchip(t, 8, 220);
-  g_ui.agTok = tlabel(t, &lv_font_montserrat_12, C_MUTED, 130, 226);
+  g_ui.agChip = mkchip(t, 8, 204);
+  g_ui.agTok = tlabel(t, &lv_font_montserrat_12, C_MUTED, 130, 210);
   lv_obj_set_width(g_ui.agTok, 342);
   lv_obj_set_style_text_align(g_ui.agTok, LV_TEXT_ALIGN_RIGHT, 0);
 }
@@ -1439,7 +1439,7 @@ static void build_tile_models(lv_obj_t *t) {
 #define TR_X0 12
 #define TR_Y0 10
 #define TR_W  440
-#define TR_H  126
+#define TR_H  110
 static int tr_x(uint32_t tt, uint32_t ws, uint32_t we) {
   if (we <= ws) return TR_X0;
   long long v = (long long)(tt - ws) * TR_W / (long long)(we - ws);
@@ -1454,7 +1454,7 @@ static void build_tile_trend(lv_obj_t *t) {
   tstatic(t, TRS("Janela de 5h", "5-hour window"), &lv_font_montserrat_16, C_TEXT, 14, 2);
   tstatic(t, TRS("uso real + projecao", "real usage + projection"), &lv_font_montserrat_12, C_FAINT, 320, 6);
 
-  lv_obj_t *c = card(t, 8, 26, 464, 170);
+  lv_obj_t *c = card(t, 8, 26, 464, 154);
   lv_obj_set_style_pad_all(c, 0, 0);
 
   // grade: 25/50/75%
@@ -1489,7 +1489,7 @@ static void build_tile_trend(lv_obj_t *t) {
   g_ui.trT0 = tlabel(c, &lv_font_montserrat_12, C_FAINT, TR_X0, TR_Y0 + TR_H + 8);
   g_ui.trT1 = tlabel(c, &lv_font_montserrat_12, C_FAINT, TR_X0 + TR_W - 40, TR_Y0 + TR_H + 8);
 
-  g_ui.trCap = tlabel(t, &lv_font_montserrat_16, C_MUTED, 14, 210);
+  g_ui.trCap = tlabel(t, &lv_font_montserrat_16, C_MUTED, 14, 194);
   lv_obj_set_width(g_ui.trCap, 452);
   lv_label_set_long_mode(g_ui.trCap, LV_LABEL_LONG_WRAP);
 }
@@ -1991,24 +1991,24 @@ static void ui_main() {
   // botao de ATUALIZAR visivel no centro, engrenagem grande a direita.
   lv_obj_t *hIcon = lv_image_create(scr);
   lv_image_set_src(hIcon, &img_clawd_sm);
-  lv_obj_set_pos(hIcon, 14, 8);
+  lv_obj_set_pos(hIcon, 12, 10);               // 58x36 num header de 56px
   lv_obj_t *hWord = lv_image_create(scr);
 #ifdef PARTNER_LOGO
   // Build de parceiro: sem wordmark; o logo dele fica centrado no header, na
-  // mesma faixa vertical de 26px. Largura vem do gerador (max 120).
+  // mesma faixa vertical de 36px. Largura vem do gerador (max 170).
   lv_image_set_src(hWord, &img_partner);
-  lv_obj_align(hWord, LV_ALIGN_TOP_MID, 0, 8 + (26 - PARTNER_LOGO_H) / 2);
-  const int logoEnd = 14 + 42;                 // hotspot cobre so o Clawd
+  lv_obj_align(hWord, LV_ALIGN_TOP_MID, 0, 10 + (36 - PARTNER_LOGO_H) / 2);
+  const int logoEnd = 12 + 58;                 // hotspot cobre so o Clawd
   const int badgeEnd = 240 - PARTNER_LOGO_W / 2 - 8;
 #else
   lv_image_set_src(hWord, &img_wordmark);
-  lv_obj_set_pos(hWord, 66, 8);
-  const int logoEnd = 66 + 56;
+  lv_obj_set_pos(hWord, 80, 10);
+  const int logoEnd = 80 + 78;                 // wordmark 78x36
   const int badgeEnd = 300;
 #endif
 
   lv_obj_t *logoSpot = lv_obj_create(scr);     // hotspot icone+nome (so demo)
-  lv_obj_set_pos(logoSpot, 6, 2); lv_obj_set_size(logoSpot, logoEnd + 6 - 6, 40);
+  lv_obj_set_pos(logoSpot, 6, 2); lv_obj_set_size(logoSpot, logoEnd + 6 - 6, 52);
   lv_obj_set_style_bg_opa(logoSpot, 0, 0);
   lv_obj_set_style_border_width(logoSpot, 0, 0);
   lv_obj_clear_flag(logoSpot, LV_OBJ_FLAG_SCROLLABLE);
@@ -2033,7 +2033,7 @@ static void ui_main() {
   lv_obj_t *ref = mkbtn(scr, LV_SYMBOL_REFRESH, &lv_font_montserrat_20, C_SURFACE2, C_ACCENT);
   lv_obj_set_size(ref, 56, 40);
   lv_obj_set_ext_click_area(ref, 10);
-  lv_obj_align(ref, LV_ALIGN_TOP_RIGHT, -92, 2);
+  lv_obj_align(ref, LV_ALIGN_TOP_RIGHT, -92, 8);
   lv_obj_add_event_cb(ref, refresh_cb, LV_EVENT_CLICKED, NULL);
 
 
@@ -2049,20 +2049,20 @@ static void ui_main() {
     lv_obj_t *acct = mklabel(scr, ab, &lv_font_montserrat_12, C_ACCENT);
     lv_obj_set_width(acct, badgeEnd - acctX);
     lv_label_set_long_mode(acct, LV_LABEL_LONG_DOT);
-    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, acctX, 16);
+    lv_obj_align(acct, LV_ALIGN_TOP_LEFT, acctX, 22);
   }
 
   lv_obj_t *gear = mkbtn(scr, LV_SYMBOL_SETTINGS, &lv_font_montserrat_22, C_SURFACE2, C_TEXT);
   lv_obj_set_size(gear, 78, 40);
   lv_obj_set_ext_click_area(gear, 16);
-  lv_obj_align(gear, LV_ALIGN_TOP_RIGHT, -6, 2);
+  lv_obj_align(gear, LV_ALIGN_TOP_RIGHT, -6, 8);
   lv_obj_add_event_cb(gear, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_SETTINGS);
 
   // Barra fina decrescente do próximo refresh (só indicador; o botão de
   // atualizar fica no centro do header — clique aqui causava refresh acidental)
   g_ui.refBar = lv_bar_create(scr);
   lv_obj_set_size(g_ui.refBar, 480, 3);
-  lv_obj_set_pos(g_ui.refBar, 0, 40);
+  lv_obj_set_pos(g_ui.refBar, 0, 56);
   lv_bar_set_range(g_ui.refBar, 0, 1000);
   lv_bar_set_value(g_ui.refBar, 1000, LV_ANIM_OFF);
   lv_obj_set_style_bg_color(g_ui.refBar, lv_color_hex(C_SURFACE), LV_PART_MAIN);
@@ -2073,8 +2073,8 @@ static void ui_main() {
 
   // Telas (swipe horizontal)
   g_ui.tv = lv_tileview_create(scr);
-  lv_obj_set_pos(g_ui.tv, 0, 46);
-  lv_obj_set_size(g_ui.tv, 480, 250);
+  lv_obj_set_pos(g_ui.tv, 0, 62);
+  lv_obj_set_size(g_ui.tv, 480, 234);
   lv_obj_set_style_bg_opa(g_ui.tv, 0, 0);
   lv_obj_set_style_border_width(g_ui.tv, 0, 0);
   lv_obj_set_scrollbar_mode(g_ui.tv, LV_SCROLLBAR_MODE_OFF);
