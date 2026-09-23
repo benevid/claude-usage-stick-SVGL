@@ -9,7 +9,7 @@ No computer. No app. No cloud.
 
 **English** · [Português](README.pt-BR.md)
 
-<img src="https://img.shields.io/badge/firmware-v2.2-D97757?style=for-the-badge" alt="firmware v2.2">
+<img src="https://img.shields.io/badge/firmware-v2.4-D97757?style=for-the-badge" alt="firmware v2.4">
 <img src="https://img.shields.io/badge/ESP32--S3-AXS15231B%20480×320-1A1A20?style=for-the-badge" alt="ESP32-S3 AXS15231B">
 <img src="https://img.shields.io/badge/LVGL-9.2.2-4ADE80?style=for-the-badge" alt="LVGL 9.2.2">
 <img src="https://img.shields.io/badge/accounts-up%20to%204-8C8C98?style=for-the-badge" alt="up to 4 accounts">
@@ -64,7 +64,7 @@ If you're comfortable with a terminal, skip it and use [Build & flash](#build--f
 
 > The images below are **pixel-accurate mockups** rendered from the firmware's own layout and
 > palette (real device photos coming soon) — regenerate with `python3 tools/gen_mockups.py`. They
-> match v2.2, except that the four swipe screens do not yet show the `@label` account badge that
+> match v2.4, except that the four swipe screens do not show the `@label` account badge that
 > appears in the header once you add a second account.
 
 Navigate by **swiping** (the dots at the bottom show your position; the active one becomes a

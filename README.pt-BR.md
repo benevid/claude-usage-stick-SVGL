@@ -9,7 +9,7 @@ Sem computador. Sem app. Sem nuvem.
 
 [English](README.md) · **Português**
 
-<img src="https://img.shields.io/badge/firmware-v2.2-D97757?style=for-the-badge" alt="firmware v2.2">
+<img src="https://img.shields.io/badge/firmware-v2.4-D97757?style=for-the-badge" alt="firmware v2.4">
 <img src="https://img.shields.io/badge/ESP32--S3-AXS15231B%20480×320-1A1A20?style=for-the-badge" alt="ESP32-S3 AXS15231B">
 <img src="https://img.shields.io/badge/LVGL-9.2.2-4ADE80?style=for-the-badge" alt="LVGL 9.2.2">
 <img src="https://img.shields.io/badge/contas-até%204-8C8C98?style=for-the-badge" alt="até 4 contas">
@@ -65,8 +65,8 @@ Se você se vira bem num terminal, pule isso e vá para [Compilar e gravar](#com
 
 > As imagens abaixo são **mockups fiéis ao pixel**, renderizados a partir do próprio layout e da
 > paleta do firmware (fotos reais do device em breve) — regenere com
-> `python3 tools/gen_mockups.py`. Correspondem à v2.2, exceto que as quatro telas de swipe ainda
-> não mostram o selo `@label` da conta, que aparece no cabeçalho quando você adiciona a segunda.
+> `python3 tools/gen_mockups.py`. Correspondem à v2.4, exceto que as quatro telas de swipe não
+> mostram o selo `@label` da conta, que aparece no cabeçalho quando você adiciona a segunda.
 
 Navegue por **swipe** (os pontinhos embaixo mostram onde você está; o ativo vira uma pílula). A
 **engrenagem** abre os Ajustes. A **barra coral fina** abaixo do cabeçalho escoa até o próximo
