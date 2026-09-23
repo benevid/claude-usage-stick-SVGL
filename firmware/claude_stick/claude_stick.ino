@@ -33,9 +33,7 @@
 #include "crypto.h"
 #include "accounts.h"
 #include "logo_assets.h"   // Clawd + logotipo oficiais (gerado por tools/gen_logo_assets.py)
-#ifdef PARTNER_LOGO
-#include "partner_logo.h"  // logo de parceiro: gerado pelo build.sh --logo, fora do sketch
-#endif
+#include "partner_slot.h"   // logo de parceiro: slot gravado no .bin pelo tools/partner_logo.py
 
 // ---- Paleta (escuro, minimalista; acento coral do Claude) ----
 #define C_BG       0x0F0F12
@@ -206,6 +204,22 @@ static void update_tok_row();
 static void show_moment(int win, int thr);
 static void moment_tick();
 static void moment_close();
+
+// Descritor LVGL do logo de parceiro, montado uma vez a partir do slot. Os
+// pixels ficam na flash (DROM mapeada), o LVGL le direto de la.
+static const lv_image_dsc_t *partner_dsc() {
+  static lv_image_dsc_t d;
+  if (d.data == nullptr) {
+    d.header.magic = LV_IMAGE_HEADER_MAGIC;
+    d.header.cf = LV_COLOR_FORMAT_ARGB8888;
+    d.header.w = partnerLogoW();
+    d.header.h = partnerLogoH();
+    d.header.stride = d.header.w * 4;
+    d.data_size = (uint32_t)d.header.w * d.header.h * 4;
+    d.data = g_partnerSlot.px;
+  }
+  return &d;
+}
 
 // ============================================================
 // Pipeline de display/touch (validado no bring-up)
@@ -1993,19 +2007,20 @@ static void ui_main() {
   lv_image_set_src(hIcon, &img_clawd_sm);
   lv_obj_set_pos(hIcon, 12, 10);               // 58x36 num header de 56px
   lv_obj_t *hWord = lv_image_create(scr);
-#ifdef PARTNER_LOGO
-  // Build de parceiro: sem wordmark; o logo dele fica centrado no header, na
-  // mesma faixa vertical de 36px. Largura vem do gerador (max 170).
-  lv_image_set_src(hWord, &img_partner);
-  lv_obj_align(hWord, LV_ALIGN_TOP_MID, 0, 10 + (36 - PARTNER_LOGO_H) / 2);
-  const int logoEnd = 12 + 58;                 // hotspot cobre so o Clawd
-  const int badgeEnd = 240 - PARTNER_LOGO_W / 2 - 8;
-#else
-  lv_image_set_src(hWord, &img_wordmark);
-  lv_obj_set_pos(hWord, 80, 10);
-  const int logoEnd = 80 + 78;                 // wordmark 78x36
-  const int badgeEnd = 300;
-#endif
+  int logoEnd, badgeEnd;
+  if (partnerLogoPresent()) {
+    // Slot de parceiro preenchido: sem wordmark; o logo fica centrado no header,
+    // na mesma faixa vertical de 36px (ver partner_slot.h).
+    lv_image_set_src(hWord, partner_dsc());
+    lv_obj_align(hWord, LV_ALIGN_TOP_MID, 0, 10 + (36 - partnerLogoH()) / 2);
+    logoEnd = 12 + 58;                         // hotspot cobre so o Clawd
+    badgeEnd = 240 - partnerLogoW() / 2 - 8;
+  } else {
+    lv_image_set_src(hWord, &img_wordmark);
+    lv_obj_set_pos(hWord, 80, 10);
+    logoEnd = 80 + 78;                         // wordmark 78x36
+    badgeEnd = 300;
+  }
 
   lv_obj_t *logoSpot = lv_obj_create(scr);     // hotspot icone+nome (so demo)
   lv_obj_set_pos(logoSpot, 6, 2); lv_obj_set_size(logoSpot, logoEnd + 6 - 6, 52);
@@ -2483,12 +2498,11 @@ static void ui_about() {
   snprintf(v, sizeof(v), "v" FW_VERSION " \xE2\x80\xA2 ESP32-S3 \xE2\x80\xA2 LVGL 9.2");
   lv_obj_t *ver = mklabel(scr, v, &lv_font_montserrat_12, C_FAINT);
   lv_obj_align(ver, LV_ALIGN_TOP_MID, 0, 122);
-#ifdef PARTNER_LOGO
-  // build de parceiro: o logo dele ao lado da versao, mesma linha
-  lv_obj_t *pl = lv_image_create(scr);
-  lv_image_set_src(pl, &img_partner);
-  lv_obj_align_to(pl, ver, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
-#endif
+  if (partnerLogoPresent()) {                // logo do parceiro ao lado da versao
+    lv_obj_t *pl = lv_image_create(scr);
+    lv_image_set_src(pl, partner_dsc());
+    lv_obj_align_to(pl, ver, LV_ALIGN_OUT_RIGHT_MID, 12, 0);
+  }
 
   lv_obj_t *d = mklabel(scr, TRS("Medidor de uso do Claude Code em tempo real: "
                                  "janelas de 5h e semanal direto da API da Anthropic.",

@@ -9,10 +9,10 @@
 #   ./build.sh monitor <porta> # abre o serial monitor (115200)
 #
 # Opcao (em qualquer posicao): --logo <arquivo.png|svg>
-#   Compila o firmware com o logo de um parceiro no lugar do wordmark
-#   "CLAUDE CODE" no header. O tools/gen_partner_logo.py gera partner_logo.h
-#   num diretorio temporario que entra por -I + -DPARTNER_LOGO — nada fica
-#   dentro do sketch, e um build sem --logo volta ao firmware padrao sozinho.
+#   Grava o logo de um parceiro no lugar do wordmark "CLAUDE CODE" do header.
+#   O firmware e o MESMO: compila normalmente e o tools/partner_logo.py escreve
+#   o logo num slot do .bin ja compilado (e recalcula checksum/SHA-256), antes
+#   de gravar. Serve para o gravador web fazer o mesmo sem recompilar.
 #
 # Pré-requisitos (ver firmware/REFERENCIA-HARDWARE-LVGL.md):
 #   - arduino-cli 1.4.x, core esp32:esp32 3.3.11
@@ -41,11 +41,26 @@ done
 cmd="${args[0]:-build}"
 port="${args[1]:-$PORT_DEFAULT}"
 
-if [ -n "$logo" ]; then
-  GEN_DIR="$(mktemp -d)"
+# Com --logo: compila para um diretorio de saida, aplica o patch no .bin e grava
+# a partir dele (arduino-cli upload --input-dir usa os .bin exportados).
+if [ -n "$logo" ] && [ "$cmd" != "monitor" ]; then
+  OUT_DIR="$(mktemp -d)"
+  echo "==> compilando ($FQBN)"
+  arduino-cli compile \
+    --fqbn "$FQBN" \
+    --build-property "compiler.cpp.extra_flags=$LVFLAGS" \
+    --build-property "compiler.c.extra_flags=$LVFLAGS" \
+    --output-dir "$OUT_DIR" \
+    "$SKETCH_DIR"
   echo "==> logo do parceiro: $logo"
-  python3 "$SKETCH_DIR/../../tools/gen_partner_logo.py" "$logo" -o "$GEN_DIR/partner_logo.h"
-  LVFLAGS="$LVFLAGS -DPARTNER_LOGO -I$GEN_DIR"
+  python3 "$SKETCH_DIR/../../tools/partner_logo.py" "$OUT_DIR/claude_stick.ino.bin" "$logo"
+  if [ "$cmd" = "upload" ]; then
+    echo "==> gravando em $port"
+    arduino-cli upload --fqbn "$FQBN" -p "$port" --input-dir "$OUT_DIR" "$SKETCH_DIR"
+  else
+    echo "==> binario com logo: $OUT_DIR/claude_stick.ino.bin"
+  fi
+  exit 0
 fi
 
 case "$cmd" in
