@@ -532,6 +532,7 @@ tools/
   partner_logo.py               # grava um logo num .bin já compilado (ver build.sh --logo)
 assets/                         # mockups das telas, banners do README + marca (brand/)
 3D Case/                        # cases imprimíveis (STL) para a placa
+docs/                           # notas e planos (ex.: porte do firmware para outras placas)
 ```
 
 ## Onde mexer

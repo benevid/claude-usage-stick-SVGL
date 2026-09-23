@@ -530,6 +530,7 @@ tools/
   partner_logo.py               # writes a logo into a compiled .bin (see build.sh --logo)
 assets/                         # screen mockups, README banners, case renders + brand assets (brand/)
 3D Case/                        # printable cases (STL) for the board
+docs/                           # notes and plans (e.g. porting the firmware to other boards)
 ```
 
 ## Where to tweak
