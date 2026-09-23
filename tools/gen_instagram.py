@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_instagram.py — carrosseis do Instagram (1080x1350, 4:5) em assets/instagram/.
+gen_instagram.py — carrosseis do Instagram (1080x1350, 4:5) em marketing/instagram/.
 
 Cada slide e um SVG montado aqui e rasterizado pelo rsvg-convert. Os mockups
 (assets/mock-*.png) e os renders dos cases entram como PNG embutido (base64).
@@ -26,7 +26,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "assets")
 BRAND = os.path.join(ASSETS, "brand")
-OUT = os.path.join(ASSETS, "instagram")
+OUT = os.path.join(ROOT, "marketing", "instagram")   # gitignored
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import partner_logo as pl  # noqa: E402
 

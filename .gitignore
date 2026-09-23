@@ -15,8 +15,8 @@ secrets.h
 CLAUDE.md
 # docs locais que nao vao para o repo publico
 LOGO-MONITOR-DE-USO.md
-# material de divulgacao gerado por tools/gen_instagram.py (fica local)
-assets/instagram/
+# material de divulgacao (carrosseis, legendas) — fica local
+marketing/
 # ───────── Build / artefatos ─────────
 firmware/*/build/
 .pio/
