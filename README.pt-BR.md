@@ -64,8 +64,7 @@ Se você se vira bem num terminal, pule isso e vá para [Compilar e gravar](#com
 ## Telas
 
 > As imagens abaixo são **mockups fiéis ao pixel**, renderizados a partir do próprio layout e da
-> paleta do firmware (fotos reais do device em breve) — regenere com
-> `python3 tools/gen_mockups.py`. Correspondem à v2.4, exceto que as quatro telas de swipe não
+> paleta do firmware (fotos reais do device em breve). Correspondem à v2.4, exceto que as quatro telas de swipe não
 > mostram o selo `@label` da conta, que aparece no cabeçalho quando você adiciona a segunda.
 
 Navegue por **swipe** (os pontinhos embaixo mostram onde você está; o ativo vira uma pílula). A
@@ -226,8 +225,6 @@ projeto da comunidade.
   [baixe no MakerWorld](https://makerworld.com/pt/models/3329534-case-claude-para-display-esp32-mascote).
 
 Fez o seu próprio case? Abra um PR adicionando à lista.
-
-Os dois renders saem do `tools/gen_case_renders.py`, direto dos arquivos STL.
 
 ---
 
@@ -530,11 +527,9 @@ firmware/
   REFERENCIA-HARDWARE-LVGL.md   # display/cores/touch que funcionam
 tools/
   token_bridge.py               # envia a contagem local de tokens ao device
+  claude-code-token-bridge-hook.sh  # hook SessionStart que mantém a ponte rodando
   gen_logo_assets.py            # SVGs da marca -> logo_assets.h
-  gen_mockups.py                # regenera assets/mock-*.png (as telas)
-  gen_banners.py                # regenera assets/banner-*.png (banners do README)
-  gen_social.py                 # regenera assets/social-preview*.png (cartao social do repo)
-  gen_case_renders.py           # regenera assets/case-*.png (renders dos cases em STL)
+  partner_logo.py               # grava um logo num .bin já compilado (ver build.sh --logo)
 assets/                         # mockups das telas, banners do README + marca (brand/)
 3D Case/                        # cases imprimíveis (STL) para a placa
 ```

@@ -17,6 +17,8 @@ CLAUDE.md
 LOGO-MONITOR-DE-USO.md
 # material de divulgacao (carrosseis, legendas) — fica local
 marketing/
+# geradores de imagem (mockups, banners, social, renders, instagram) — ficam locais
+tools-local/
 # ───────── Build / artefatos ─────────
 firmware/*/build/
 .pio/
