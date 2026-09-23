@@ -13,6 +13,8 @@ secrets.h
 .vscode/
 .idea/
 CLAUDE.md
+# docs locais que nao vao para o repo publico
+LOGO-MONITOR-DE-USO.md
 # ───────── Build / artefatos ─────────
 firmware/*/build/
 .pio/
