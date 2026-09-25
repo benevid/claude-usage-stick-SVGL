@@ -36,6 +36,11 @@
 #define LV_USE_STDLIB_STRING   LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_SPRINTF  LV_STDLIB_BUILTIN
 #define LV_MEM_SIZE            (96 * 1024U)
+/* Pool na PSRAM (lv_mem_init() chama LV_MEM_POOL_ALLOC no lv_init()). Sem isto
+   o pool vira array estatico de 96 KB na RAM interna — a mesma que o handshake
+   TLS (~45 KB contiguos) e o driver WiFi disputam. */
+#define LV_MEM_POOL_INCLUDE    <esp_heap_caps.h>
+#define LV_MEM_POOL_ALLOC(sz)  heap_caps_malloc((sz), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
 
 /*====================
    HAL / SISTEMA
