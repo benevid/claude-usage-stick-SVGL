@@ -124,6 +124,13 @@ static uint32_t g_lastOkMs = 0;           // millis do último sucesso (p/ "atua
 // ---- Brilho ----
 static const uint8_t BRI_LEVELS[3] = {60, 160, 255};
 static int g_briIdx = 1;
+// Escurecer quando parado + modo noite (config NVS, tela de Ajustes)
+static int  g_dimMin = 0;                 // min sem toque p/ escurecer: 0=off, 1/5/10/30
+static bool g_nightOn = false;            // apaga a tela no horario abaixo
+static int  g_nightFrom = 22, g_nightTo = 7;   // horas locais; pode cruzar a meia-noite
+static uint8_t g_blNow = 0;               // duty atual do backlight
+#define BL_DIM        18                  // brilho "escurecido"
+#define NIGHT_WAKE_MS 30000UL             // de noite, um toque acende por 30s
 
 static uint32_t g_lastPollMs = 0;         // millis do último poll (p/ barra de refresh)
 static int g_pollSec = DEFAULT_POLL_SEC;  // intervalo de atualização (config, NVS)
@@ -186,6 +193,7 @@ static void refresh_ui_values();
 static void dash_tick();
 static void set_hdr_status();
 static void apply_tz();
+static void apply_brightness();
 static void ui_pin();
 static void pin_lock_tick();
 static void ui_wifi();
@@ -236,12 +244,15 @@ static void disp_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px
 }
 static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data) {
   uint16_t x, y;
+  static bool swallow = false;          // toque que acordou a tela: engole ate soltar
   if (touch_dev.touched()) {
     touch_dev.readData(&x, &y);
     data->point.x = x; data->point.y = y;
-    data->state = LV_INDEV_STATE_PRESSED;
-    g_lastTouchMs = millis();          // pausa o slideshow enquanto ha interacao
+    g_lastTouchMs = millis();          // pausa o slideshow / acorda a tela
+    if (g_blNow == 0) { swallow = true; apply_brightness(); }
+    data->state = swallow ? LV_INDEV_STATE_RELEASED : LV_INDEV_STATE_PRESSED;
   } else {
+    swallow = false;
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
@@ -344,6 +355,11 @@ static void load_persisted() {
   g_pinAttempts = g_prefs.getInt("pinatt", 0);
   g_briIdx = g_prefs.getInt("bri", 1);
   if (g_briIdx < 0 || g_briIdx > 2) g_briIdx = 1;
+  g_dimMin = g_prefs.getInt("dim", 0);
+  if (g_dimMin != 0 && g_dimMin != 1 && g_dimMin != 5 && g_dimMin != 10 && g_dimMin != 30) g_dimMin = 0;
+  g_nightOn = g_prefs.getBool("night", false);
+  g_nightFrom = constrain(g_prefs.getInt("nfrom", 22), 0, 23);
+  g_nightTo = constrain(g_prefs.getInt("nto", 7), 0, 23);
   g_pollSec = g_prefs.getInt("poll", DEFAULT_POLL_SEC);
   if (g_pollSec < MIN_POLL_SEC || g_pollSec > MAX_POLL_SEC) g_pollSec = DEFAULT_POLL_SEC;
   g_tzOffset = g_prefs.getInt("tz", -3);
@@ -356,7 +372,24 @@ static void load_persisted() {
   g_lang = g_prefs.getInt("lang", 0) ? 1 : 0;
 }
 static void save_attempts() { g_prefs.putInt("pinatt", g_pinAttempts); }
-static void apply_brightness() { ledcWrite(TFT_BL, BRI_LEVELS[g_briIdx]); }
+// Noite so vale com relogio sincronizado. from == to = janela vazia.
+static bool night_now() {
+  if (!g_nightOn || g_nightFrom == g_nightTo) return false;
+  time_t t = time(nullptr);
+  if (t < 1000000000L) return false;
+  struct tm lt; localtime_r(&t, &lt);
+  int h = lt.tm_hour;
+  return g_nightFrom < g_nightTo ? (h >= g_nightFrom && h < g_nightTo)
+                                 : (h >= g_nightFrom || h < g_nightTo);
+}
+static uint8_t backlight_target() {
+  uint32_t idle = millis() - g_lastTouchMs;
+  uint8_t full = BRI_LEVELS[g_briIdx];
+  if (night_now() && idle > NIGHT_WAKE_MS) return 0;
+  if (g_dimMin && idle > (uint32_t)g_dimMin * 60000UL) return full < BL_DIM ? full : BL_DIM;
+  return full;
+}
+static void apply_brightness() { g_blNow = backlight_target(); ledcWrite(TFT_BL, g_blNow); }
 
 static void reset_history_ram();
 
@@ -2123,7 +2156,22 @@ static void ui_main() {
 // ============================================================
 static bool g_wipeArmed = false;
 static lv_obj_t *g_briLbl = nullptr, *g_wipeLbl = nullptr, *g_pollLbl = nullptr,
-                *g_tzLbl = nullptr, *g_slideLbl = nullptr;
+                *g_tzLbl = nullptr, *g_slideLbl = nullptr, *g_dimLbl = nullptr, *g_nightLbl = nullptr;
+// Presets do modo noite (sem painel web para escolher a hora): off -> 22-07 -> 23-07 -> 00-07 -> 22-06
+static const int8_t NIGHT_OPTS[][2] = {{22, 7}, {23, 7}, {0, 7}, {22, 6}};
+#define NNIGHT ((int)(sizeof(NIGHT_OPTS) / sizeof(NIGHT_OPTS[0])))
+static void dim_txt(char *out, size_t sz) {
+  if (g_dimMin) snprintf(out, sz, TRS(LV_SYMBOL_EYE_CLOSE "  Escurecer: apos %d min",
+                                      LV_SYMBOL_EYE_CLOSE "  Dim: after %d min"), g_dimMin);
+  else snprintf(out, sz, "%s", TRS(LV_SYMBOL_EYE_CLOSE "  Escurecer: desligado",
+                                   LV_SYMBOL_EYE_CLOSE "  Dim: off"));
+}
+static void night_txt(char *out, size_t sz) {
+  if (g_nightOn) snprintf(out, sz, TRS(LV_SYMBOL_POWER "  Modo noite: %02dh-%02dh",
+                                       LV_SYMBOL_POWER "  Night mode: %02dh-%02dh"), g_nightFrom, g_nightTo);
+  else snprintf(out, sz, "%s", TRS(LV_SYMBOL_POWER "  Modo noite: desligado",
+                                   LV_SYMBOL_POWER "  Night mode: off"));
+}
 static const int POLL_OPTS[4] = {30, 60, 120, 300};
 static const int TZ_OPTS[] = {-3, -4, -5, -6, -7, -8, -2, -1, 0, 1, 2, 3};
 #define NTZ ((int)(sizeof(TZ_OPTS) / sizeof(TZ_OPTS[0])))
@@ -2212,6 +2260,29 @@ static void settings_action_cb(lv_event_t *e) {
       break;
     case 10: request_state(ST_ABOUT); break;           // sobre / about
     case 11: g_acctDelArmed = -1; request_state(ST_ACCOUNTS); break;
+    case 12: {                                         // escurecer: off -> 1 -> 5 -> 10 -> 30 -> off
+      static const int DM[5] = {0, 1, 5, 10, 30};
+      int idx = 0;
+      for (int i = 0; i < 5; i++) if (DM[i] == g_dimMin) idx = i;
+      g_dimMin = DM[(idx + 1) % 5];
+      g_prefs.putInt("dim", g_dimMin);
+      if (g_dimLbl) { char m[64]; dim_txt(m, sizeof(m)); lv_label_set_text(g_dimLbl, m); }
+      break;
+    }
+    case 13: {                                         // modo noite: off -> presets -> off
+      int idx = -1;                                    // -1 = desligado
+      if (g_nightOn)
+        for (int i = 0; i < NNIGHT; i++)
+          if (NIGHT_OPTS[i][0] == g_nightFrom && NIGHT_OPTS[i][1] == g_nightTo) idx = i;
+      idx++;
+      g_nightOn = idx < NNIGHT;
+      if (g_nightOn) { g_nightFrom = NIGHT_OPTS[idx][0]; g_nightTo = NIGHT_OPTS[idx][1]; }
+      g_prefs.putBool("night", g_nightOn);
+      g_prefs.putInt("nfrom", g_nightFrom);
+      g_prefs.putInt("nto", g_nightTo);
+      if (g_nightLbl) { char m[80]; night_txt(m, sizeof(m)); lv_label_set_text(g_nightLbl, m); }
+      break;
+    }
   }
 }
 static void add_setting_row(lv_obj_t *p, const char *txt, int act, uint32_t fg, lv_obj_t **out) {
@@ -2274,6 +2345,10 @@ static void ui_settings() {
                            LV_SYMBOL_LIST "  Language: English"), 9, C_TEXT, nullptr);
   add_setting_row(lst, tzTxt,                                    7, C_TEXT, &g_tzLbl);
   add_setting_row(lst, bri,                                      3, C_TEXT, &g_briLbl);
+  char dimTxt[64]; dim_txt(dimTxt, sizeof(dimTxt));
+  add_setting_row(lst, dimTxt,                                  12, C_TEXT, &g_dimLbl);
+  char nightTxt[80]; night_txt(nightTxt, sizeof(nightTxt));
+  add_setting_row(lst, nightTxt,                                13, C_TEXT, &g_nightLbl);
   add_setting_row(lst, TRS(LV_SYMBOL_WIFI "  Configurar WiFi",
                            LV_SYMBOL_WIFI "  Configure WiFi"),   1, C_TEXT, nullptr);
   char acctTxt[64];
@@ -2549,7 +2624,7 @@ static void render_state() {
   g_pinDots = g_pinMsg = nullptr;
   g_tokMsg = nullptr;
   g_nameTa = nullptr;
-  g_briLbl = g_wipeLbl = g_pollLbl = g_tzLbl = g_slideLbl = nullptr;
+  g_briLbl = g_wipeLbl = g_pollLbl = g_tzLbl = g_slideLbl = g_dimLbl = g_nightLbl = nullptr;
 
   lv_obj_clean(lv_screen_active());
   lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(C_BG), 0);
@@ -2732,6 +2807,10 @@ void loop() {
     g_wantRefresh = false;
     bg_refresh();           // seta g_lastPollMs no fim
   }
+
+  // Backlight: escurecer quando parado / modo noite (so escreve se mudar)
+  static uint32_t lastBl = 0;
+  if (millis() - lastBl > 500) { lastBl = millis(); if (backlight_target() != g_blNow) apply_brightness(); }
 
   // Contagem do bloqueio por PIN errado. 250ms para o segundo virar sem atraso
   // visivel; o tick so reescreve o label quando o valor muda. So ST_PIN: o
