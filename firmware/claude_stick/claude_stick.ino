@@ -2535,6 +2535,32 @@ static void nav_cb(lv_event_t *e) {
   request_state(s);
 }
 
+// Tela de erro com saida: antes era um beco sem saida (sem botao, sem gesto),
+// e com token revogado o device ficava preso em "auth_failed" apos o PIN.
+static void ui_error() {
+  ui_message(TRS("Falha", "Failed"),
+             g_usage.error[0] ? g_usage.error : TRS("sem dados", "no data"), C_BAD);
+  lv_obj_t *scr = lv_screen_active();
+  bool auth = strcmp(g_usage.error, "auth_failed") == 0;
+  lv_obj_t *hint = mklabel(scr,
+      auth ? TRS("Token recusado pela API. Gere outro com 'claude setup-token'.",
+                 "Token rejected by the API. Generate a new one with 'claude setup-token'.")
+           : TRS("Sem resposta valida da API.", "No valid API response."),
+      &lv_font_montserrat_12, C_MUTED);
+  lv_obj_align(hint, LV_ALIGN_CENTER, 0, 52);
+
+  lv_obj_t *rt = mkbtn(scr, TRS(LV_SYMBOL_REFRESH " Tentar de novo", LV_SYMBOL_REFRESH " Retry"),
+                       &lv_font_montserrat_14, C_SURFACE2, C_TEXT);
+  lv_obj_align(rt, LV_ALIGN_BOTTOM_MID, -92, -16);
+  lv_obj_add_event_cb(rt, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)ST_LOADING);
+
+  lv_obj_t *st = mkbtn(scr, auth ? TRS(LV_SYMBOL_KEYBOARD " Trocar token", LV_SYMBOL_KEYBOARD " Change token")
+                                 : TRS(LV_SYMBOL_SETTINGS " Ajustes", LV_SYMBOL_SETTINGS " Settings"),
+                       &lv_font_montserrat_14, C_SURFACE2, C_MUTED);
+  lv_obj_align(st, LV_ALIGN_BOTTOM_MID, 92, -16);
+  lv_obj_add_event_cb(st, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)(auth ? ST_TOKEN : ST_SETTINGS));
+}
+
 // ============================================================
 // Render do estado atual
 // ============================================================
@@ -2567,8 +2593,7 @@ static void render_state() {
     case ST_ACCOUNTS:  ui_accounts(); break;
     case ST_ACCT_NAME: ui_account_name(); break;
     case ST_ABOUT:     ui_about(); break;
-    case ST_ERROR:     ui_message(TRS("Falha", "Failed"),
-                                  g_usage.error[0] ? g_usage.error : TRS("sem dados", "no data"), C_BAD); break;
+    case ST_ERROR:     ui_error(); break;
     default: break;
   }
 }
@@ -2603,6 +2628,11 @@ static void do_refresh() {
     probe_next_model();
   } else g_lastFetchOk = false;
   g_lastPollMs = millis();
+  if (!ok && strcmp(g_usage.error, "auth_failed") == 0) {   // token revogado/expirado
+    Serial.println("[API] auth_failed -> troca de token");
+    request_state(ST_TOKEN);
+    return;
+  }
   request_state(ok ? ST_MAIN : ST_ERROR);
 }
 
@@ -2626,7 +2656,15 @@ static void bg_refresh() {
     probe_next_model();
     for (int i = 0; i < NMODELS; i++)
       if (moodBefore[i] != model_mood(i)) rebuild = true;   // mascote muda de humor
-  } else g_lastFetchOk = false;
+  } else {
+    g_lastFetchOk = false;
+    if (strcmp(u.error, "auth_failed") == 0) {            // token revogado: sai do dashboard congelado
+      g_refreshing = false; g_lastPollMs = millis();
+      Serial.println("[API] auth_failed em background -> troca de token");
+      request_state(ST_TOKEN);
+      return;
+    }
+  }
   g_refreshing = false;
   g_lastPollMs = millis();
   if (rebuild) request_state(ST_MAIN);    // mascotes mudaram -> rebuild
